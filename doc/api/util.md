@@ -1113,7 +1113,7 @@ doSomething[kCustomPromisifiedSymbol] = (foo) => {
 
 ## `util.stripVTControlCharacters(str)`
 <!-- YAML
-added: REPLACEME
+added: v17.0.0
 -->
 
 * `str` {string}

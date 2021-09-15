@@ -232,7 +232,7 @@ try {
 
 #### `filehandle.createReadStream([options])`
 <!-- YAML
-added: REPLACEME
+added: v17.0.0
 -->
 
 * `options` {Object}
@@ -298,7 +298,7 @@ fd.createReadStream({ start: 90, end: 99 });
 
 #### `filehandle.createWriteStream([options])`
 <!-- YAML
-added: REPLACEME
+added: v17.0.0
 -->
 
 * `options` {Object}
@@ -395,7 +395,7 @@ number of bytes read is zero.
 
 #### `filehandle.readableWebStream()`
 <!-- YAML
-added: REPLACEME
+added: v17.0.0
 -->
 
 > Stability: 1 - Experimental
