@@ -55,7 +55,6 @@ void JSArrayBuffer::Setup(SharedFlag shared, ResizableFlag resizable,
     SetEmbedderField(i, Smi::zero());
   }
   set_extension(nullptr);
-  AllocateExternalPointerEntries(GetIsolate());
   if (!backing_store) {
     set_backing_store(GetIsolate(), nullptr);
     set_byte_length(0);
@@ -128,9 +127,20 @@ void JSArrayBuffer::Detach(bool force_for_wasm_memory) {
   set_was_detached(true);
 }
 
-std::shared_ptr<BackingStore> JSArrayBuffer::GetBackingStore() {
-    if (!extension()) return nullptr;
-    return extension()->backing_store();
+std::shared_ptr<BackingStore> JSArrayBuffer::GetBackingStore() const {
+  if (!extension()) return nullptr;
+  return extension()->backing_store();
+}
+
+size_t JSArrayBuffer::GetByteLength() const {
+  if V8_UNLIKELY (is_shared() && is_resizable()) {
+    // Invariant: byte_length for GSAB is 0 (it needs to be read from the
+    // BackingStore).
+    DCHECK_EQ(0, byte_length());
+
+    return GetBackingStore()->byte_length(std::memory_order_seq_cst);
+  }
+  return byte_length();
 }
 
 ArrayBufferExtension* JSArrayBuffer::EnsureExtension() {

@@ -9,6 +9,7 @@
 #include "src/diagnostics/code-tracer.h"
 #include "src/heap/heap-inl.h"
 #include "src/wasm/baseline/liftoff-compiler.h"
+#include "src/wasm/code-space-access.h"
 #include "src/wasm/graph-builder-interface.h"
 #include "src/wasm/leb-helper.h"
 #include "src/wasm/module-compiler.h"
@@ -69,7 +70,6 @@ TestingModuleBuilder::TestingModuleBuilder(
 
   if (maybe_import) {
     // Manually compile an import wrapper and insert it into the instance.
-    CodeSpaceMemoryModificationScope modification_scope(isolate_->heap());
     auto resolved = compiler::ResolveWasmImportCall(
         maybe_import->js_function, maybe_import->sig,
         instance_object_->module(), enabled_features_);
@@ -82,6 +82,7 @@ TestingModuleBuilder::TestingModuleBuilder(
         static_cast<int>(maybe_import->sig->parameter_count()));
     auto import_wrapper = cache_scope[key];
     if (import_wrapper == nullptr) {
+      CodeSpaceWriteScope write_scope(native_module_);
       import_wrapper = CompileImportWrapper(
           native_module_, isolate_->counters(), kind, maybe_import->sig,
           static_cast<int>(maybe_import->sig->parameter_count()), &cache_scope);
@@ -219,7 +220,8 @@ void TestingModuleBuilder::AddIndirectFunctionTable(
       instance_object(), table_index, table_size);
   Handle<WasmTableObject> table_obj =
       WasmTableObject::New(isolate_, instance, table.type, table.initial_size,
-                           table.has_maximum_size, table.maximum_size, nullptr);
+                           table.has_maximum_size, table.maximum_size, nullptr,
+                           isolate_->factory()->null_value());
 
   WasmTableObject::AddDispatchTable(isolate_, table_obj, instance_object_,
                                     table_index);
@@ -381,17 +383,17 @@ void TestBuildingGraphWithBuilder(compiler::WasmGraphBuilder* builder,
   WasmFeatures unused_detected_features;
   FunctionBody body(sig, 0, start, end);
   std::vector<compiler::WasmLoopInfo> loops;
-  DecodeResult result =
-      BuildTFGraph(zone->allocator(), WasmFeatures::All(), nullptr, builder,
-                   &unused_detected_features, body, &loops, nullptr, 0);
+  DecodeResult result = BuildTFGraph(
+      zone->allocator(), WasmFeatures::All(), nullptr, builder,
+      &unused_detected_features, body, &loops, nullptr, 0, kRegularFunction);
   if (result.failed()) {
 #ifdef DEBUG
     if (!FLAG_trace_wasm_decoder) {
       // Retry the compilation with the tracing flag on, to help in debugging.
       FLAG_trace_wasm_decoder = true;
-      result =
-          BuildTFGraph(zone->allocator(), WasmFeatures::All(), nullptr, builder,
-                       &unused_detected_features, body, &loops, nullptr, 0);
+      result = BuildTFGraph(zone->allocator(), WasmFeatures::All(), nullptr,
+                            builder, &unused_detected_features, body, &loops,
+                            nullptr, 0, kRegularFunction);
     }
 #endif
 

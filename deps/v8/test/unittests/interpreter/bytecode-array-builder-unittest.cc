@@ -203,7 +203,7 @@ TEST_F(BytecodeArrayBuilderTest, AllBytecodesGenerated) {
       .CallUndefinedReceiver(reg, pair, 1)
       .CallRuntime(Runtime::kIsArray, reg)
       .CallRuntimeForPair(Runtime::kLoadLookupSlotForCall, reg_list, pair)
-      .CallJSRuntime(Context::OBJECT_CREATE, reg_list)
+      .CallJSRuntime(Context::PROMISE_THEN_INDEX, reg_list)
       .CallWithSpread(reg, reg_list, 1);
 
   // Emit binary operator invocations.
@@ -713,11 +713,11 @@ TEST_F(BytecodeArrayBuilderTest, BackwardJumps) {
       .JumpLoop(&loop_header, 0, 0)
       .Bind(&after_loop);
   for (int i = 0; i < 42; i++) {
-    BytecodeLabel after_loop;
+    BytecodeLabel also_after_loop;
     // Conditional jump to force the code after the JumpLoop to be live.
-    builder.JumpIfNull(&after_loop)
+    builder.JumpIfNull(&also_after_loop)
         .JumpLoop(&loop_header, 0, 0)
-        .Bind(&after_loop);
+        .Bind(&also_after_loop);
   }
 
   // Add padding to force wide backwards jumps.

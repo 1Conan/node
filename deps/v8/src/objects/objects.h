@@ -9,7 +9,6 @@
 #include <memory>
 
 #include "include/v8-internal.h"
-#include "include/v8.h"
 #include "include/v8config.h"
 #include "src/base/bits.h"
 #include "src/base/build_config.h"
@@ -647,7 +646,8 @@ class Object : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
     bool operator()(const Object a, const Object b) const { return a < b; }
   };
 
-  template <class T, typename std::enable_if<std::is_arithmetic<T>::value,
+  template <class T, typename std::enable_if<std::is_arithmetic<T>::value ||
+                                                 std::is_enum<T>::value,
                                              int>::type = 0>
   inline T ReadField(size_t offset) const {
     // Pointer compression causes types larger than kTaggedSize to be unaligned.
@@ -664,7 +664,8 @@ class Object : public TaggedImpl<HeapObjectReferenceType::STRONG, Address> {
     }
   }
 
-  template <class T, typename std::enable_if<std::is_arithmetic<T>::value,
+  template <class T, typename std::enable_if<std::is_arithmetic<T>::value ||
+                                                 std::is_enum<T>::value,
                                              int>::type = 0>
   inline void WriteField(size_t offset, T value) const {
     // Pointer compression causes types larger than kTaggedSize to be unaligned.
@@ -839,18 +840,6 @@ enum EnsureElementsMode {
 
 // Indicator for one component of an AccessorPair.
 enum AccessorComponent { ACCESSOR_GETTER, ACCESSOR_SETTER };
-
-enum class GetKeysConversion {
-  kKeepNumbers = static_cast<int>(v8::KeyConversionMode::kKeepNumbers),
-  kConvertToString = static_cast<int>(v8::KeyConversionMode::kConvertToString),
-  kNoNumbers = static_cast<int>(v8::KeyConversionMode::kNoNumbers)
-};
-
-enum class KeyCollectionMode {
-  kOwnOnly = static_cast<int>(v8::KeyCollectionMode::kOwnOnly),
-  kIncludePrototypes =
-      static_cast<int>(v8::KeyCollectionMode::kIncludePrototypes)
-};
 
 // Utility superclass for stack-allocated objects that must be updated
 // on gc.  It provides two ways for the gc to update instances, either

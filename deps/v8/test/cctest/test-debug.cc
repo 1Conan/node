@@ -27,6 +27,10 @@
 
 #include <stdlib.h>
 
+#include "include/v8-extension.h"
+#include "include/v8-function.h"
+#include "include/v8-json.h"
+#include "include/v8-locker.h"
 #include "src/api/api-inl.h"
 #include "src/base/strings.h"
 #include "src/codegen/compilation-cache.h"
@@ -594,10 +598,11 @@ TEST(BreakPointApiIntrinsics) {
     CHECK_EQ(2, break_point_hit_count);
 
     break_point_hit_count = 0;
-    v8::Local<v8::debug::WeakMap> weakmap =
-        v8::debug::WeakMap::New(env->GetIsolate());
-    CHECK(!weakmap->Set(env.local(), weakmap, v8_num(1)).IsEmpty());
-    CHECK(!weakmap->Get(env.local(), weakmap).IsEmpty());
+    v8::Local<v8::debug::EphemeronTable> weakmap =
+        v8::debug::EphemeronTable::New(env->GetIsolate());
+    v8::Local<v8::Object> key = v8::Object::New(env->GetIsolate());
+    CHECK(!weakmap->Set(env->GetIsolate(), key, v8_num(1)).IsEmpty());
+    CHECK(!weakmap->Get(env->GetIsolate(), key).IsEmpty());
     CHECK_EQ(0, break_point_hit_count);
   }
 
@@ -938,7 +943,6 @@ TEST(BreakPointInlinedConstructorBuiltin) {
 
 TEST(BreakPointBuiltinConcurrentOpt) {
   i::FLAG_allow_natives_syntax = true;
-  i::FLAG_block_concurrent_recompilation = true;
   LocalContext env;
   v8::HandleScope scope(env->GetIsolate());
 
@@ -952,19 +956,20 @@ TEST(BreakPointBuiltinConcurrentOpt) {
   break_point_hit_count = 0;
   builtin = CompileRun("Math.sin").As<v8::Function>();
   CompileRun("function test(x) { return 1 + Math.sin(x) }");
-  // Trigger concurrent compile job. It is suspended until unblock.
   CompileRun(
       "%PrepareFunctionForOptimization(test);"
       "test(0.5); test(0.6);"
-      "%OptimizeFunctionOnNextCall(test, 'concurrent'); test(0.7);");
+      "%DisableOptimizationFinalization();"
+      "%OptimizeFunctionOnNextCall(test, 'concurrent');"
+      "test(0.7);");
   CHECK_EQ(0, break_point_hit_count);
 
   // Run with breakpoint.
   bp = SetBreakPoint(builtin, 0);
   // Have the concurrent compile job finish now.
   CompileRun(
-      "%UnblockConcurrentRecompilation();"
-      "%GetOptimizationStatus(test, 'sync');");
+      "%FinalizeOptimization();"
+      "%GetOptimizationStatus(test);");
   CompileRun("test(0.2);");
   CHECK_EQ(1, break_point_hit_count);
 
@@ -1446,7 +1451,6 @@ TEST(BreakPointInlineApiFunction) {
 // Test that a break point can be set at a return store location.
 TEST(BreakPointConditionBuiltin) {
   i::FLAG_allow_natives_syntax = true;
-  i::FLAG_block_concurrent_recompilation = true;
   LocalContext env;
   v8::HandleScope scope(env->GetIsolate());
 
@@ -3265,15 +3269,16 @@ TEST(DebugScriptLineEndsAreAscending) {
   v8::HandleScope scope(isolate);
 
   // Compile a test script.
-  v8::Local<v8::String> script = v8_str(isolate,
-                                        "function f() {\n"
-                                        "  debugger;\n"
-                                        "}\n");
+  v8::Local<v8::String> script_source = v8_str(isolate,
+                                               "function f() {\n"
+                                               "  debugger;\n"
+                                               "}\n");
 
   v8::ScriptOrigin origin1 = v8::ScriptOrigin(isolate, v8_str(isolate, "name"));
-  v8::Local<v8::Script> script1 =
-      v8::Script::Compile(env.local(), script, &origin1).ToLocalChecked();
-  USE(script1);
+  v8::Local<v8::Script> script =
+      v8::Script::Compile(env.local(), script_source, &origin1)
+          .ToLocalChecked();
+  USE(script);
 
   Handle<v8::internal::FixedArray> instances;
   {
@@ -3283,12 +3288,12 @@ TEST(DebugScriptLineEndsAreAscending) {
 
   CHECK_GT(instances->length(), 0);
   for (int i = 0; i < instances->length(); i++) {
-    Handle<v8::internal::Script> script = Handle<v8::internal::Script>(
+    Handle<v8::internal::Script> new_script = Handle<v8::internal::Script>(
         v8::internal::Script::cast(instances->get(i)), CcTest::i_isolate());
 
-    v8::internal::Script::InitLineEnds(CcTest::i_isolate(), script);
+    v8::internal::Script::InitLineEnds(CcTest::i_isolate(), new_script);
     v8::internal::FixedArray ends =
-        v8::internal::FixedArray::cast(script->line_ends());
+        v8::internal::FixedArray::cast(new_script->line_ends());
     CHECK_GT(ends.length(), 0);
 
     int prev_end = -1;
