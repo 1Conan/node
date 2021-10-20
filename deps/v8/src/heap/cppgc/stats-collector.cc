@@ -57,7 +57,7 @@ void StatsCollector::NotifyExplicitFree(size_t bytes) {
 }
 
 void StatsCollector::NotifySafePointForConservativeCollection() {
-  if (std::abs(allocated_bytes_since_safepoint_ -
+  if (std::fabs(allocated_bytes_since_safepoint_ -
                explicitly_freed_bytes_since_safepoint_) >=
       static_cast<int64_t>(kAllocationThresholdBytes)) {
     AllocatedObjectSizeSafepointImpl();
