@@ -133,6 +133,12 @@
       '<(V8_ROOT)',
       '<(V8_ROOT)/include',
     ],
+    'target_conditions': [
+      ['_toolset=="host" and host_os!="mac"', {
+        'cflags!': [ '-Wall', '-Wextra', '-Werror', '-Wno-unknown-pragmas' ],
+        'cflags': [ '-Wno-return-type' ],
+      }],
+    ],
     'conditions': [
       ['clang', {
         'cflags': [ '-Werror', '-Wno-unknown-pragmas' ],
@@ -223,6 +229,9 @@
               ['v8_target_arch==target_arch', {
                 # Target built with an Arm CXX compiler.
                 'conditions': [
+                  [ 'arm_version==8', {
+                    'cflags': ['-march=armv8'],
+                  }],
                   [ 'arm_version==7', {
                     'cflags': ['-march=armv7-a',],
                   }],
@@ -1366,6 +1375,16 @@
               },
             },
           }],  # OS=="win"
+          ['OS=="ios"', {
+            'cflags!': [
+              '-Os',
+              '-Oz',
+              '-O0',
+              '-O1',
+              '-O2',
+              '-O3',
+            ],
+          }],
           ['v8_enable_slow_dchecks==1', {
             'defines': [
               'ENABLE_SLOW_DCHECKS',

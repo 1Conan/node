@@ -94,7 +94,7 @@
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/obj.target/tools/v8_gypfiles/libv8_snapshot.a',
       }],
-      ['OS=="mac"', {
+      ['OS=="mac" or OS=="ios"', {
         'clang%': 1,
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/libv8_snapshot.a',
@@ -195,7 +195,7 @@
             # pull in V8's postmortem metadata
             'ldflags': [ '-Wl,-z,allextract' ]
           }],
-          ['OS!="mac" and OS!="win"', {
+          ['OS!="mac" and OS!="ios" and OS!="win"', {
             'cflags': [ '-fno-omit-frame-pointer' ],
           }],
           ['OS=="linux"', {
@@ -213,6 +213,9 @@
           ['OS == "android"', {
             'cflags': [ '-fPIC' ],
             'ldflags': [ '-fPIC' ]
+          }],
+          ['OS == "ios"', {
+            'cflags!': ['-O3'],
           }],
         ],
         'msvs_settings': {
@@ -322,7 +325,7 @@
       [ 'target_arch=="arm64"', {
         'msvs_configuration_platform': 'arm64',
       }],
-      ['asan == 1 and OS != "mac"', {
+      ['asan == 1 and OS != "mac" and OS != "ios"', {
         'cflags+': [
           '-fno-omit-frame-pointer',
           '-fsanitize=address',
@@ -332,7 +335,7 @@
         'cflags!': [ '-fomit-frame-pointer' ],
         'ldflags': [ '-fsanitize=address' ],
       }],
-      ['asan == 1 and OS == "mac"', {
+      ['asan == 1 and (OS == "mac" or OS == "ios")', {
         'xcode_settings': {
           'OTHER_CFLAGS+': [
             '-fno-omit-frame-pointer',
@@ -347,6 +350,16 @@
         'target_conditions': [
           ['_type!="static_library"', {
             'xcode_settings': {'OTHER_LDFLAGS': ['-fsanitize=address']},
+          }],
+          ['OS=="ios" and _toolset=="target" hos_os=="linux"', {
+            'ldflags': ['-fsanitize=address'],
+            'cflags+': [
+              '-fno-omit-frame-pointer',
+              '-gline-tables-only',
+              '-fsanitize=address',
+              '-DLEAK_SANITIZER'
+            ],
+            'cflags!': ['-fomit-frame-pointer',],
           }],
         ],
       }],
@@ -471,6 +484,86 @@
           ['_toolset=="host"', {
             'cflags': [ '-pthread' ],
             'ldflags': [ '-pthread' ],
+          }],
+        ],
+      }],
+      ['OS=="ios"', {
+        'defines': ['_DARWIN_USE_64_BIT_INODE=1'],
+        'xcode_settings': {
+          'ALWAYS_SEARCH_USER_PATHS': 'NO',
+          'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
+          'GCC_DYNAMIC_NO_PIC': 'NO',               # No -mdynamic-no-pic
+                                                    # (Equivalent to -fPIC)
+          'GCC_ENABLE_CPP_EXCEPTIONS': 'NO',        # -fno-exceptions
+          'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
+          'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
+          'PREBINDING': 'NO',                       # No -Wl,-prebind
+          'IPHONEOS_DEPLOYMENT_TARGET': '12.0',     # -miphoneos-version-min=12.0
+          'USE_HEADERMAP': 'NO',
+          'OTHER_CFLAGS': [
+            '-fno-strict-aliasing',
+          ],
+          'WARNING_CFLAGS': [
+            '-Wall',
+            '-Wendif-labels',
+            '-W',
+            '-Wno-unused-parameter',
+          ],
+        },
+        'target_conditions': [
+          ['_toolset=="host" and host_os=="mac"', {
+            'xcode_settings': {
+              'SDKROOT': '',
+              'IPHONEOS_DEPLOYMENT_TARGET': '',
+              'MACOSX_DEPLOYMENT_TARGET': '10.13',
+            },
+            'conditions': [
+              ['host_arch=="x64"', {
+                'xcode_settings': {
+                  'ARCHS!': ['arm64'],
+                  'ARCHS': ['x86_64'],
+                },
+              }],
+            ],
+          }],
+          ['_type!="static_library"', {
+            'xcode_settings': {
+              'OTHER_LDFLAGS': [
+                '-Wl,-no_pie',
+                '-Wl,-search_paths_first',
+              ],
+            },
+          }],
+          ['_toolset=="host" and host_os=="linux"', {
+            'defines!': ['_DARWIN_USE_64_BIT_INODE=1'],
+          }],
+          ['_toolset=="target" and host_os!="mac"', {
+            'cflags': [
+              '-fno-strict-aliasing',
+            ],
+          }],
+          ['_toolset=="target" and _type!="static_library" and host_os!="mac"', {
+            'ldflags': [
+              '-Wl,-no_pie',
+              '-Wl,-search_paths_first',
+            ],
+          }],
+        ],
+        'conditions': [
+          ['target_arch=="arm64"', {
+            'xcode_settings': {
+              'ARCHS': ['arm64'],
+              'OTHER_LDFLAGS!': [
+                '-Wl,-no_pie',
+              ],
+            },
+          }],
+          ['clang==1', {
+            'xcode_settings': {
+              'GCC_VERSION': 'com.apple.compilers.llvm.clang.1_0',
+              'CLANG_CXX_LANGUAGE_STANDARD': 'gnu++14',
+              'CLANG_CXX_LIBRARY': 'libc++',
+            },
           }],
         ],
       }],
