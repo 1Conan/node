@@ -311,7 +311,7 @@
           'sources': [
             '<(V8_ROOT)/src/builtins/riscv64/builtins-riscv64.cc',
           ],
-        }],        
+        }],
         ['v8_target_arch=="mips64" or v8_target_arch=="mips64el"', {
           'sources': [
             '<(V8_ROOT)/src/builtins/mips64/builtins-mips64.cc',
@@ -862,15 +862,37 @@
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_current_cpu == \\"arm64\\".*?sources \\+= ")',
           ],
           'conditions': [
-            ['OS=="mac"', {
-              'sources': [
-                "<(V8_ROOT)/src/trap-handler/handler-inside-posix.cc",
-                "<(V8_ROOT)/src/trap-handler/handler-outside-posix.cc",
+            ['v8_enable_webassembly==1', {
+              'conditions': [
+                ['OS=="mac" or OS=="ios" or (host_arch=="x64" and OS=="linux")', {
+                  'sources': [
+                    '<(V8_ROOT)/src/trap-handler/handler-inside-posix.cc',
+                    '<(V8_ROOT)/src/trap-handler/handler-outside-posix.cc',
+                  ],
+                }],
+                ['host_arch=="x64" and OS=="win"', {
+                  'sources': [
+                    '<(V8_ROOT)/src/trap-handler/handler-inside-win.cc',
+                    '<(V8_ROOT)/src/trap-handler/handler-outside-win.cc',
+                  ],
+                }],
+                ['host_arch=="x64" and (OS=="linux" or OS=="mac" or OS=="win")', {
+                  'sources': [
+                    '<(V8_ROOT)/src/trap-handler/handler-outside-simulator.cc',
+                  ],
+                }],
+              ],
+              'target_conditions': [
+                ['OS=="ios" and _toolset=="host"', {
+                  'sources': [
+                    '<(V8_ROOT)/src/trap-handler/handler-outside-simulator.cc',
+                  ],
+                }],
               ],
             }],
             ['OS=="win"', {
               'sources': [
-                "<(V8_ROOT)/src/diagnostics/unwinding-info-win64.cc",
+                '<(V8_ROOT)/src/diagnostics/unwinding-info-win64.cc',
               ],
             }],
           ],
@@ -904,7 +926,7 @@
           'sources': [
             '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "\\"v8_base_without_compiler.*?v8_current_cpu == \\"riscv64\\".*?sources \\+= ")',
           ],
-        }],        
+        }],
         ['OS=="win"', {
           'msvs_precompiled_header': '<(V8_ROOT)/../../tools/msvs/pch/v8_pch.h',
           'msvs_precompiled_source': '<(V8_ROOT)/../../tools/msvs/pch/v8_pch.cc',
@@ -1154,9 +1176,28 @@
         }],
         ['OS == "mac" or OS == "ios"', {
           'sources': [
+            '<(V8_ROOT)/src/base/platform/platform-posix.cc',
+            '<(V8_ROOT)/src/base/platform/platform-posix.h',
             '<(V8_ROOT)/src/base/debug/stack_trace_posix.cc',
             '<(V8_ROOT)/src/base/platform/platform-macos.cc',
-          ]
+          ],
+          'link_settings': {
+            'target_conditions': [
+              ['_toolset=="host" and host_os=="linux"', {
+                'libraries': [
+                  '-ldl',
+                  '-lrt',
+                  '-pthread',
+                ],
+              }],
+            ],
+          },
+          'target_conditions': [
+            ['_toolset=="host" and host_os=="linux"', {
+              'sources!': ['<(V8_ROOT)/src/base/platform/platform-macos.cc'],
+              'sources': ['<(V8_ROOT)/src/base/platform/platform-linux.cc'],
+            }],
+          ],
         }],
         ['is_win', {
           'sources': [

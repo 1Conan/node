@@ -65,8 +65,8 @@ generator_filelist_paths = None
 def CalculateVariables(default_variables, params):
     """Calculate additional variables for use in the build (called by gyp)."""
     flavor = gyp.common.GetFlavor(params)
-    if flavor == "mac":
-        default_variables.setdefault("OS", "mac")
+    if flavor in ("mac", "ios"):
+        default_variables.setdefault("OS", flavor)
         default_variables.setdefault("SHARED_LIB_SUFFIX", ".dylib")
         default_variables.setdefault(
             "SHARED_LIB_DIR", generator_default_variables["PRODUCT_DIR"]
@@ -175,6 +175,30 @@ cmd_solink = $(LINK.$(TOOLSET)) -o $@ -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET
 
 quiet_cmd_solink_module = SOLINK_MODULE($(TOOLSET)) $@
 cmd_solink_module = $(LINK.$(TOOLSET)) -o $@ -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl,-soname=$(@F) -Wl,--start-group $(filter-out FORCE_DO_CMD, $^) -Wl,--end-group $(LIBS)
+"""  # noqa: E501
+
+LINK_COMMANDS_IOS = """\
+quiet_cmd_alink = AR($(TOOLSET)) $@
+cmd_alink = rm -f $@ && $(AR.$(TOOLSET)) crs $@ $(filter %.o,$^)
+
+quiet_cmd_alink_thin = AR($(TOOLSET)) $@
+cmd_alink_thin = rm -f $@ && $(AR.$(TOOLSET)) crsT $@ $(filter %.o,$^)
+
+quiet_cmd_link = LINK($(TOOLSET)) $@
+cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o "$@" $(LD_INPUTS) $(LIBS)
+
+quiet_cmd_solink = SOLINK($(TOOLSET)) $@
+cmd_solink = $(LINK.$(TOOLSET)) -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o "$@" $(LD_INPUTS) $(LIBS)
+
+quiet_cmd_solink_module = SOLINK_MODULE($(TOOLSET)) $@
+cmd_solink_module = $(LINK.$(TOOLSET)) -bundle $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(filter-out FORCE_DO_CMD, $^) $(LIBS)
+
+# Linux
+quiet_cmd_link_host = LINK($(TOOLSET)) $@
+cmd_link_host = $(LINK.$(TOOLSET)) -o $@ $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl,--start-group $(LD_INPUTS) $(LIBS) -Wl,--end-group
+
+quiet_cmd_solink_module_host = SOLINK_MODULE($(TOOLSET)) $@
+cmd_solink_module_host = $(LINK.$(TOOLSET)) -o $@ -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -Wl,-soname=$(@F) -Wl,--start-group $(filter-out FORCE_DO_CMD, $^) -Wl,--end-group $(LIBS)
 """  # noqa: E501
 
 LINK_COMMANDS_MAC = """\
@@ -1391,7 +1415,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
                 "%s " % precompiled_header.GetInclude("cc") + "$(CFLAGS_$(BUILDTYPE)) "
                 "$(CFLAGS_CC_$(BUILDTYPE))"
             )
-            if self.flavor == "mac":
+            if self.flavor in ("mac", "ios"):
                 self.WriteLn(
                     "$(OBJS): GYP_OBJCFLAGS := "
                     "$(DEFS_$(BUILDTYPE)) "
@@ -1617,6 +1641,10 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
                     )
                     if target_postbuild:
                         target_postbuilds[configname] = target_postbuild
+                elif self.flavor == "ios":
+                  ldflags = config.get("ldflags", [])
+                  ldflags.append(r"-Wl,-rpath,@loader_path")
+
                 else:
                     ldflags = config.get("ldflags", [])
                     # Compute an rpath for this output if needed.
@@ -1742,7 +1770,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
                     " ".join(QuoteSpaces(dep) for dep in link_deps),
                 )
             )
-            if self.toolset == "host" and self.flavor == "android":
+            if self.toolset == "host" and self.flavor in ("android", "ios"):
                 self.WriteDoCmd(
                     [self.output_binary],
                     link_deps,
@@ -1765,7 +1793,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
                     "Spaces in alink input filenames not supported (%s)" % link_dep
                 )
             if (
-                self.flavor not in ("mac", "openbsd", "netbsd", "win")
+                self.flavor not in ("mac", "ios", "openbsd", "netbsd", "win")
                 and not self.is_standalone_static_library
             ):
                 self.WriteDoCmd(
@@ -1803,7 +1831,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
                 assert " " not in link_dep, (
                     "Spaces in module input filenames not supported (%s)" % link_dep
                 )
-            if self.toolset == "host" and self.flavor == "android":
+            if self.toolset == "host" and self.flavor in ("android", "ios"):
                 self.WriteDoCmd(
                     [self.output_binary],
                     link_deps,
@@ -2310,6 +2338,8 @@ def GenerateOutput(target_list, target_dicts, data, params):
                 "extra_commands": SHARED_HEADER_MAC_COMMANDS,
             }
         )
+    elif flavor == "ios":
+        header_params.update({"link_commands": LINK_COMMANDS_IOS})
     elif flavor == "android":
         header_params.update({"link_commands": LINK_COMMANDS_ANDROID})
     elif flavor == "zos":
