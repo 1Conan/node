@@ -58,6 +58,11 @@
         'ENGINESDIR="/dev/null"',
         '__EXTENSIONS__'
       ],
+    }, 'OS=="ios"', {
+      'defines': [
+        'OPENSSLDIR="/etc/ssl"',
+        'ENGINESDIR="/dev/null"',
+      ],
     }, {
       # linux and others
       'cflags': ['-Wno-missing-field-initializers',],

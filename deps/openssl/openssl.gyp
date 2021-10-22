@@ -16,6 +16,9 @@
       ['OS=="mac"', {
         'obj_dir_abs%': '<(PRODUCT_DIR_ABS)/obj.target',
       }],
+      ['OS=="ios"', {
+        'obj_dir_abs%': '<(PRODUCT_DIR_ABS)/obj.target',
+      }],
     ],
   },
   'targets': [

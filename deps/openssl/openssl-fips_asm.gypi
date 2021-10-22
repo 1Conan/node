@@ -16,7 +16,7 @@
       'includes': ['config/archs/linux-armv4/asm/openssl-fips.gypi'],
     }, 'target_arch=="arm64" and OS=="linux"', {
       'includes': ['config/archs/linux-aarch64/asm/openssl-fips.gypi'],
-    }, 'target_arch=="arm64" and OS=="mac"', {
+    }, 'target_arch=="arm64" and OS in ("mac", "ios")', {
       'includes': ['config/archs/darwin64-arm64-cc/asm/openssl-fips.gypi'],
     }, 'target_arch=="ia32" and OS=="freebsd"', {
       'includes': ['config/archs/BSD-x86/asm/openssl-fips.gypi'],
