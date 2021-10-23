@@ -143,6 +143,18 @@
         'cflags!': [ '-Wall', '-Wextra' ],
         'cflags': [ '-Wno-return-type' ],
       }],
+      ['OS=="ios"', {
+        'target_conditions': [
+          ['_toolset=="host" and host_os!="mac"', {
+            'cflags!': [ '-Wall', '-Wextra', '-Werror', '-Wno-unknown-pragmas' ],
+            'cflags': [ '-Werror', '-Wno-unknown-pragmas', '-Wno-return-type' ],
+          }],
+          ['_toolset=="target"', {
+            'cflags!': [ '-Wall', '-Wextra' ],
+            'cflags': [ '-Werror', '-Wno-unknown-pragmas' ],
+          }]
+        ],
+      }],
       ['v8_target_arch=="arm"', {
         'defines': [
           'V8_TARGET_ARCH_ARM',

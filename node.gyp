@@ -235,6 +235,11 @@
           'xcode_settings': {
             'OTHER_LDFLAGS': [ '-Wl,-rpath,@loader_path', ],
           },
+          'target_conditions': [
+            ['OS=="ios" and _toolset=="target" and host_os=="linux"', {
+              'ldflags': [ '-Wl,-rpath,@loader_path', ],
+            }],
+          ],
         }],
         ['OS=="win"', {
           'libraries': [
@@ -600,6 +605,9 @@
             'LD_DYLIB_INSTALL_NAME':
               '@rpath/lib<(node_core_target_name).<(shlib_suffix)'
           },
+        }],
+        ['OS=="ios" and node_shared=="true"', {
+          'ldflags': ['-install_name @rpath/lib<(node_core_target_name).<(shlib_suffix)']
         }],
         ['node_shared=="true" and OS=="aix"', {
           'product_name': 'node_base',
@@ -1103,6 +1111,13 @@
           'xcode_settings': {
             'OTHER_LDFLAGS': [ '-Wl,-rpath,@loader_path', ],
           },
+        }],
+        [ 'node_shared=="true" and OS=="ios"', {
+          'target_conditions': [
+            ['_toolset=="target"', {
+              'ldflags': ['-Wl,-rpath,@loader_path'],
+            }],
+          ],
         }],
         ['OS=="win"', {
           'libraries': [

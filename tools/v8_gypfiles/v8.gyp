@@ -1087,9 +1087,28 @@
         }],
         ['OS == "mac" or OS == "ios"', {
           'sources': [
+            '<(V8_ROOT)/src/base/platform/platform-posix.cc',
+            '<(V8_ROOT)/src/base/platform/platform-posix.h',
             '<(V8_ROOT)/src/base/debug/stack_trace_posix.cc',
             '<(V8_ROOT)/src/base/platform/platform-macos.cc',
-          ]
+          ],
+          'link_settings': {
+            'target_conditions': [
+              ['_toolset=="host" and host_os=="linux"', {
+                'libraries': [
+                  '-ldl',
+                  '-lrt',
+                  '-pthread',
+                ],
+              }],
+            ],
+          },
+          'target_conditions': [
+            ['_toolset=="host" and host_os=="linux"', {
+              'sources!': ['<(V8_ROOT)/src/base/platform/platform-macos.cc'],
+              'sources': ['<(V8_ROOT)/src/base/platform/platform-linux.cc'],
+            }],
+          ],
         }],
         ['is_win', {
           'sources': [

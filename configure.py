@@ -54,7 +54,7 @@ from fetch_deps import FetchDeps
 parser = optparse.OptionParser()
 
 valid_os = ('win', 'mac', 'solaris', 'freebsd', 'openbsd', 'linux',
-            'android', 'aix', 'cloudabi')
+            'android', 'aix', 'cloudabi', 'ios')
 valid_arch = ('arm', 'arm64', 'ia32', 'mips', 'mipsel', 'mips64el', 'ppc',
               'ppc64', 'x32','x64', 'x86', 'x86_64', 's390x')
 valid_arm_float_abi = ('soft', 'softfp', 'hard')
@@ -1064,6 +1064,8 @@ def configure_node_lib_files(o):
 def configure_node(o):
   if options.dest_os == 'android':
     o['variables']['OS'] = 'android'
+  if options.dest_os == 'ios':
+    o['variables']['OS'] = 'ios'
   o['variables']['node_prefix'] = options.prefix
   o['variables']['node_install_npm'] = b(not options.without_npm)
   o['variables']['debug_node'] = b(options.debug_node)
@@ -1218,7 +1220,7 @@ def configure_node(o):
 
   if options.dest_os == 'android':
     shlib_suffix = 'so'
-  elif sys.platform == 'darwin':
+  elif sys.platform == 'darwin' or options.dest_os == 'ios':
     shlib_suffix = '%s.dylib'
   elif sys.platform.startswith('aix'):
     shlib_suffix = '%s.a'
