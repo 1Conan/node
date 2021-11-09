@@ -540,15 +540,28 @@
               ],
             },
           }],
-          ['_toolset=="host" and host_os=="linux"', {
+          ['_toolset=="host" and host_os!="mac"', {
             'defines!': ['_DARWIN_USE_64_BIT_INODE=1'],
           }],
           ['_toolset=="target" and host_os!="mac"', {
+            'cflags!': [
+              '-fasm-blocks',
+              '-mdynamic-no-pic',
+              '-mpascal-strings',
+              '-Wl,-prebind',
+            ],
             'cflags': [
+              '-Wall',
+              '-Wendif-labels',
+              '-W',
+              '-Wno-unused-parameter',
               '-fno-strict-aliasing',
+              '-fno-rtti',
+              '-fno-exceptions',
+              '-miphoneos-version-min=12.0',
             ],
           }],
-          ['_toolset=="target" and _type!="static_library" and host_os!="mac"', {
+          ['_toolset=="target" and host_os!="mac" and _type!="static_library"', {
             'ldflags': [
               '-Wl,-no_pie',
               '-Wl,-search_paths_first',
