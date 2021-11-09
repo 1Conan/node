@@ -351,7 +351,7 @@
           ['_type!="static_library"', {
             'xcode_settings': {'OTHER_LDFLAGS': ['-fsanitize=address']},
           }],
-          ['OS=="ios" and _toolset=="target" hos_os=="linux"', {
+          ['OS=="ios" and _toolset=="target" host_os=="linux"', {
             'ldflags': ['-fsanitize=address'],
             'cflags+': [
               '-fno-omit-frame-pointer',
