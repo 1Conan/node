@@ -345,6 +345,14 @@ void Sign::Initialize(Environment* env, Local<Object> target) {
   NODE_DEFINE_CONSTANT(target, RSA_PKCS1_PSS_PADDING);
 }
 
+void Sign::RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+  registry->Register(New);
+  registry->Register(SignInit);
+  registry->Register(SignUpdate);
+  registry->Register(SignFinal);
+  SignJob::RegisterExternalReferences(registry);
+}
+
 void Sign::New(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   new Sign(env, args.This());
@@ -450,6 +458,13 @@ void Verify::Initialize(Environment* env, Local<Object> target) {
   env->SetProtoMethod(t, "verify", VerifyFinal);
 
   env->SetConstructorFunction(target, "Verify", t);
+}
+
+void Verify::RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+  registry->Register(New);
+  registry->Register(VerifyInit);
+  registry->Register(VerifyUpdate);
+  registry->Register(VerifyFinal);
 }
 
 void Verify::New(const FunctionCallbackInfo<Value>& args) {
@@ -723,19 +738,25 @@ bool SignTraits::DeriveBits(
       size_t len;
       unsigned char* data = nullptr;
       if (IsOneShot(params.key)) {
-        EVP_DigestSign(
+        if (!EVP_DigestSign(
             context.get(),
             nullptr,
             &len,
             params.data.data<unsigned char>(),
-            params.data.size());
+            params.data.size())) {
+          crypto::CheckThrow(env, SignBase::Error::kSignPrivateKey);
+          return false;
+        }
         data = MallocOpenSSL<unsigned char>(len);
-        EVP_DigestSign(
+        if (!EVP_DigestSign(
             context.get(),
             data,
             &len,
             params.data.data<unsigned char>(),
-            params.data.size());
+            params.data.size())) {
+              crypto::CheckThrow(env, SignBase::Error::kSignPrivateKey);
+              return false;
+            }
         ByteSource buf =
             ByteSource::Allocated(reinterpret_cast<char*>(data), len);
         *out = std::move(buf);
@@ -745,13 +766,16 @@ bool SignTraits::DeriveBits(
                 params.data.data<unsigned char>(),
                 params.data.size()) ||
             !EVP_DigestSignFinal(context.get(), nullptr, &len)) {
+          crypto::CheckThrow(env, SignBase::Error::kSignPrivateKey);
           return false;
         }
         data = MallocOpenSSL<unsigned char>(len);
         ByteSource buf =
             ByteSource::Allocated(reinterpret_cast<char*>(data), len);
-        if (!EVP_DigestSignFinal(context.get(), data, &len))
+        if (!EVP_DigestSignFinal(context.get(), data, &len)) {
+          crypto::CheckThrow(env, SignBase::Error::kSignPrivateKey);
           return false;
+        }
 
         if (UseP1363Encoding(params.key, params.dsa_encoding)) {
           *out = ConvertSignatureToP1363(env, params.key, buf);

@@ -38,6 +38,7 @@ using v8::NewStringType;
 using v8::Nothing;
 using v8::Object;
 using v8::String;
+using v8::TryCatch;
 using v8::Uint32;
 using v8::Uint8Array;
 using v8::Value;
@@ -120,6 +121,17 @@ bool ProcessFipsOptions() {
 #else
     return FIPS_mode() == 0 && FIPS_mode_set(1);
 #endif
+  }
+  return true;
+}
+
+bool InitCryptoOnce(Isolate* isolate) {
+  static uv_once_t init_once = UV_ONCE_INIT;
+  TryCatch try_catch{isolate};
+  uv_once(&init_once, InitCryptoOnce);
+  if (try_catch.HasCaught() && !try_catch.HasTerminated()) {
+    try_catch.ReThrow();
+    return false;
   }
   return true;
 }
@@ -336,6 +348,11 @@ std::unique_ptr<BackingStore> ByteSource::ReleaseToBackingStore() {
 Local<ArrayBuffer> ByteSource::ToArrayBuffer(Environment* env) {
   std::unique_ptr<BackingStore> store = ReleaseToBackingStore();
   return ArrayBuffer::New(env->isolate(), std::move(store));
+}
+
+MaybeLocal<Uint8Array> ByteSource::ToBuffer(Environment* env) {
+  Local<ArrayBuffer> ab = ToArrayBuffer(env);
+  return Buffer::New(env, ab, 0, ab->ByteLength());
 }
 
 const char* ByteSource::get() const {
@@ -721,6 +738,18 @@ void Initialize(Environment* env, Local<Object> target) {
   env->SetMethod(target, "secureBuffer", SecureBuffer);
   env->SetMethod(target, "secureHeapUsed", SecureHeapUsed);
 }
+void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+#ifndef OPENSSL_NO_ENGINE
+  registry->Register(SetEngine);
+#endif  // !OPENSSL_NO_ENGINE
+
+  registry->Register(GetFipsCrypto);
+  registry->Register(SetFipsCrypto);
+  registry->Register(TestFipsCrypto);
+  registry->Register(SecureBuffer);
+  registry->Register(SecureHeapUsed);
+}
+
 }  // namespace Util
 
 }  // namespace crypto

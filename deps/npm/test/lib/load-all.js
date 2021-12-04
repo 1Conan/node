@@ -5,10 +5,11 @@ const { real: mockNpm } = require('../fixtures/mock-npm')
 
 const full = process.env.npm_lifecycle_event === 'check-coverage'
 
-if (!full)
+if (!full) {
   t.pass('nothing to do here, not checking for full coverage')
-else {
-  const { npm } = mockNpm(t)
+} else {
+  const { Npm } = mockNpm(t)
+  const npm = new Npm()
 
   t.teardown(() => {
     const exitHandler = require('../../lib/utils/exit-handler.js')
@@ -16,7 +17,7 @@ else {
     exitHandler()
   })
 
-  t.test('load npm first', async t => {
+  t.before(async t => {
     await npm.load()
   })
 

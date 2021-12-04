@@ -803,6 +803,13 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
     return 12;
   }
 
+  // TODO(aduh95): remove this when the harmony-import-assertions flag
+  // is removed in V8.
+  if (std::find(v8_args.begin(), v8_args.end(),
+                "--no-harmony-import-assertions") == v8_args.end()) {
+    v8_args.push_back("--harmony-import-assertions");
+  }
+
   auto env_opts = per_process::cli_options->per_isolate->per_env;
   if (std::find(v8_args.begin(), v8_args.end(),
                 "--abort-on-uncaught-exception") != v8_args.end() ||
@@ -953,7 +960,7 @@ int InitializeNodeWithArgs(std::vector<std::string>* argv,
   }
 # endif
 
-#endif
+#endif  // defined(NODE_HAVE_I18N_SUPPORT)
 
   NativeModuleEnv::InitializeCodeCache();
 
@@ -1084,7 +1091,7 @@ InitializationResult InitializeOncePerProcess(
         return result;
       }
     }
-#else
+#else  // OPENSSL_VERSION_MAJOR < 3
     if (FIPS_mode()) {
       OPENSSL_init();
     }

@@ -2145,7 +2145,7 @@ for performance reasons.
 ### `stream.Readable.fromWeb(readableStream[, options])`
 
 <!-- YAML
-added: v16.11.0
+added: v17.0.0
 -->
 
 > Stability: 1 - Experimental
@@ -3230,6 +3230,7 @@ pipeline(
         // Make sure is valid json.
         JSON.parse(this.data);
         this.push(this.data);
+        callback();
       } catch (err) {
         callback(err);
       }

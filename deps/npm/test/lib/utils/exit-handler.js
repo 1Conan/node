@@ -26,21 +26,22 @@ const cacheFolder = t.testdir({})
 const logFile = path.resolve(cacheFolder, '_logs', 'expecteddate-debug.log')
 const timingFile = path.resolve(cacheFolder, '_timing.json')
 
-const { npm } = mockNpm(t)
+const { Npm } = mockNpm(t, {
+  '../../package.json': {
+    version: '1.0.0',
+  },
+})
+const npm = new Npm()
 
 t.before(async () => {
-  npm.version = '1.0.0'
   await npm.load()
   npm.config.set('cache', cacheFolder)
 })
 
-t.test('bootstrap tap before cutting off process ref', (t) => {
-  t.ok('ok')
-  t.end()
-})
-
 // cut off process from script so that it won't quit the test runner
-// while trying to run through the myriad of cases
+// while trying to run through the myriad of cases.  need to make it
+// have all the functions signal-exit relies on so that it doesn't
+// nerf itself, thinking global.process is broken or gone.
 const _process = process
 process = Object.assign(
   new EventEmitter(),
@@ -58,6 +59,9 @@ process = Object.assign(
     } },
     stderr: { write () {} },
     hrtime: _process.hrtime,
+    kill: () => {},
+    reallyExit: (code) => process.exit(code),
+    pid: 123456,
   }
 )
 
@@ -233,7 +237,8 @@ t.test('update notification', (t) => {
 t.test('npm.config not ready', (t) => {
   t.plan(1)
 
-  const { npm: unloaded } = mockNpm(t)
+  const { Npm: Unloaded } = mockNpm(t)
+  const unloaded = new Unloaded()
 
   t.teardown(() => {
     exitHandler.setNpm(npm)
@@ -315,7 +320,8 @@ t.test('call exitHandler with no error', (t) => {
 })
 
 t.test('defaults to log error msg if stack is missing', (t) => {
-  const { npm: unloaded } = mockNpm(t)
+  const { Npm: Unloaded } = mockNpm(t)
+  const unloaded = new Unloaded()
 
   t.teardown(() => {
     exitHandler.setNpm(npm)

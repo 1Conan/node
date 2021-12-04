@@ -9,46 +9,24 @@ require('graceful-fs').gracefulify(require('fs'))
 // TODO make this only ever load once (or unload) in tests
 const procLogListener = require('./utils/proc-log-listener.js')
 
-const proxyCmds = new Proxy({}, {
-  get: (target, cmd) => {
-    const actual = deref(cmd)
-    if (actual && !Reflect.has(target, actual)) {
-      const Impl = require(`./${actual}.js`)
-      const impl = new Impl(npm)
-      // Our existing npm.commands[x] act like a function with attributes, but
-      // our modules have non-inumerable attributes so we can't just assign
-      // them to an anonymous function like we used to.  This acts like that
-      // old way of doing things, until we can make breaking changes to the
-      // npm.commands[x] api
-      target[actual] = new Proxy(
-        (args, cb) => npm[_runCmd](actual, impl, args, cb),
-        {
-          get: (target, attr, receiver) => {
-            return Reflect.get(impl, attr, receiver)
-          },
-        })
-    }
-    return target[actual]
-  },
-})
-
 // Timers in progress
 const timers = new Map()
 // Finished timers
 const timings = {}
 
-const processOnTimeHandler = (name) => {
+const processOnTimeHandler = name => {
   timers.set(name, Date.now())
 }
 
-const processOnTimeEndHandler = (name) => {
+const processOnTimeEndHandler = name => {
   if (timers.has(name)) {
     const ms = Date.now() - timers.get(name)
     log.timing(name, `Completed in ${ms}ms`)
     timings[name] = ms
     timers.delete(name)
-  } else
+  } else {
     log.silly('timing', "Tried to end timer that doesn't exist:", name)
+  }
 }
 
 const { definitions, flatten, shorthands } = require('./utils/config/index.js')
@@ -63,23 +41,26 @@ const cleanUpLogFiles = require('./utils/cleanup-log-files.js')
 const getProjectScope = require('./utils/get-project-scope.js')
 
 let warnedNonDashArg = false
-const _runCmd = Symbol('_runCmd')
 const _load = Symbol('_load')
 const _tmpFolder = Symbol('_tmpFolder')
 const _title = Symbol('_title')
+const pkg = require('../package.json')
 
-const npm = module.exports = new class extends EventEmitter {
+class Npm extends EventEmitter {
+  static get version () {
+    return pkg.version
+  }
+
   constructor () {
     super()
     this.started = Date.now()
     this.command = null
-    this.commands = proxyCmds
     this.timings = timings
     this.timers = timers
-    this.perfStart()
+    process.on('time', processOnTimeHandler)
+    process.on('timeEnd', processOnTimeEndHandler)
     procLogListener()
     process.emit('time', 'npm')
-    this.version = require('../package.json').version
     this.config = new Config({
       npmPath: dirname(__dirname),
       definitions,
@@ -90,14 +71,8 @@ const npm = module.exports = new class extends EventEmitter {
     this.updateNotification = null
   }
 
-  perfStart () {
-    process.on('time', processOnTimeHandler)
-    process.on('timeEnd', processOnTimeEndHandler)
-  }
-
-  perfStop () {
-    process.off('time', processOnTimeHandler)
-    process.off('timeEnd', processOnTimeEndHandler)
+  get version () {
+    return this.constructor.version
   }
 
   get shelloutCommands () {
@@ -108,94 +83,107 @@ const npm = module.exports = new class extends EventEmitter {
     return deref(c)
   }
 
-  // this will only ever be called with cmd set to the canonical command name
-  [_runCmd] (cmd, impl, args, cb) {
-    if (!this.loaded) {
-      throw new Error(
-        'Call npm.load() before using this command.\n' +
-        'See lib/cli.js for example usage.'
-      )
+  // Get an instantiated npm command
+  // npm.command is already taken as the currently running command, a refactor
+  // would be needed to change this
+  async cmd (cmd) {
+    await this.load()
+    const command = this.deref(cmd)
+    if (!command) {
+      throw Object.assign(new Error(`Unknown command ${cmd}`), {
+        code: 'EUNKNOWNCOMMAND',
+      })
     }
+    const Impl = require(`./commands/${command}.js`)
+    const impl = new Impl(this)
+    return impl
+  }
 
+  // Call an npm command
+  async exec (cmd, args) {
+    const command = await this.cmd(cmd)
     process.emit('time', `command:${cmd}`)
+
     // since 'test', 'start', 'stop', etc. commands re-enter this function
     // to call the run-script command, we need to only set it one time.
     if (!this.command) {
-      process.env.npm_command = cmd
-      this.command = cmd
+      process.env.npm_command = command.name
+      this.command = command.name
     }
 
     // Options are prefixed by a hyphen-minus (-, \u2d).
     // Other dash-type chars look similar but are invalid.
     if (!warnedNonDashArg) {
-      args.filter(arg => /^[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/.test(arg))
+      args
+        .filter(arg => /^[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/.test(arg))
         .forEach(arg => {
           warnedNonDashArg = true
-          this.log.error('arg', 'Argument starts with non-ascii dash, this is probably invalid:', arg)
+          this.log.error(
+            'arg',
+            'Argument starts with non-ascii dash, this is probably invalid:',
+            arg
+          )
         })
     }
 
     const workspacesEnabled = this.config.get('workspaces')
     const workspacesFilters = this.config.get('workspace')
-    if (workspacesEnabled === false && workspacesFilters.length > 0)
-      return cb(new Error('Can not use --no-workspaces and --workspace at the same time'))
+    if (workspacesEnabled === false && workspacesFilters.length > 0) {
+      throw new Error('Can not use --no-workspaces and --workspace at the same time')
+    }
 
     const filterByWorkspaces = workspacesEnabled || workspacesFilters.length > 0
     // normally this would go in the constructor, but our tests don't
     // actually use a real npm object so this.npm.config isn't always
     // populated.  this is the compromise until we can make that a reality
     // and then move this into the constructor.
-    impl.workspaces = this.config.get('workspaces')
-    impl.workspacePaths = null
+    command.workspaces = this.config.get('workspaces')
+    command.workspacePaths = null
     // normally this would be evaluated in base-command#setWorkspaces, see
     // above for explanation
-    impl.includeWorkspaceRoot = this.config.get('include-workspace-root')
+    command.includeWorkspaceRoot = this.config.get('include-workspace-root')
 
     if (this.config.get('usage')) {
-      this.output(impl.usage)
-      cb()
-    } else if (filterByWorkspaces) {
-      if (this.config.get('global'))
-        return cb(new Error('Workspaces not supported for global packages'))
+      this.output(command.usage)
+      return
+    }
+    if (filterByWorkspaces) {
+      if (this.config.get('global')) {
+        throw new Error('Workspaces not supported for global packages')
+      }
 
-      impl.execWorkspaces(args, this.config.get('workspace'), er => {
+      return command.execWorkspaces(args, this.config.get('workspace')).finally(() => {
         process.emit('timeEnd', `command:${cmd}`)
-        cb(er)
       })
     } else {
-      impl.exec(args, er => {
+      return command.exec(args).finally(() => {
         process.emit('timeEnd', `command:${cmd}`)
-        cb(er)
       })
     }
   }
 
-  load (cb) {
-    if (cb && typeof cb !== 'function')
-      throw new TypeError('callback must be a function if provided')
-
+  async load () {
     if (!this.loadPromise) {
       process.emit('time', 'npm:load')
       this.log.pause()
       this.loadPromise = new Promise((resolve, reject) => {
-        this[_load]().catch(er => er).then((er) => {
-          this.loadErr = er
-          if (!er && this.config.get('force'))
-            this.log.warn('using --force', 'Recommended protections disabled.')
+        this[_load]()
+          .catch(er => er)
+          .then(er => {
+            this.loadErr = er
+            if (!er && this.config.get('force')) {
+              this.log.warn('using --force', 'Recommended protections disabled.')
+            }
 
-          process.emit('timeEnd', 'npm:load')
-          if (er)
-            return reject(er)
-          resolve()
-        })
+            process.emit('timeEnd', 'npm:load')
+            if (er) {
+              return reject(er)
+            }
+            resolve()
+          })
       })
     }
-    if (!cb)
-      return this.loadPromise
-
-    // loadPromise is returned here for legacy purposes, old code was allowing
-    // the mixing of callback and promise here.
-    return this.loadPromise.then(cb, cb)
+    return this.loadPromise
   }
 
   get loaded () {
@@ -239,7 +227,8 @@ const npm = module.exports = new class extends EventEmitter {
     // args keeps those from being leaked.
     process.emit('time', 'npm:load:setTitle')
     const tokrev = deref(this.argv[0]) === 'token' && this.argv[1] === 'revoke'
-    this.title = tokrev ? 'npm token revoke' + (this.argv[2] ? ' ***' : '')
+    this.title = tokrev
+      ? 'npm token revoke' + (this.argv[2] ? ' ***' : '')
       : ['npm', ...this.argv].join(' ')
     process.emit('timeEnd', 'npm:load:setTitle')
 
@@ -256,20 +245,21 @@ const npm = module.exports = new class extends EventEmitter {
 
     process.emit('time', 'npm:load:configScope')
     const configScope = this.config.get('scope')
-    if (configScope && !/^@/.test(configScope))
+    if (configScope && !/^@/.test(configScope)) {
       this.config.set('scope', `@${configScope}`, this.config.find('scope'))
+    }
     process.emit('timeEnd', 'npm:load:configScope')
 
     process.emit('time', 'npm:load:projectScope')
-    this.projectScope = this.config.get('scope') ||
-      getProjectScope(this.prefix)
+    this.projectScope = this.config.get('scope') || getProjectScope(this.prefix)
     process.emit('timeEnd', 'npm:load:projectScope')
   }
 
   get flatOptions () {
     const { flat } = this.config
-    if (this.command)
+    if (this.command) {
       flat.npmCommand = this.command
+    }
     return flat
   }
 
@@ -322,7 +312,7 @@ const npm = module.exports = new class extends EventEmitter {
   }
 
   get dir () {
-    return (this.config.get('global')) ? this.globalDir : this.localDir
+    return this.config.get('global') ? this.globalDir : this.localDir
   }
 
   get globalBin () {
@@ -366,4 +356,5 @@ const npm = module.exports = new class extends EventEmitter {
     console.log(...msg)
     this.log.showProgress()
   }
-}()
+}
+module.exports = Npm

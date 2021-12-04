@@ -1,13 +1,10 @@
 // Separated out for easier unit testing
-module.exports = async (process) => {
+module.exports = async process => {
   // set it here so that regardless of what happens later, we don't
   // leak any private CLI configs to other programs
   process.title = 'npm'
 
-  const {
-    checkForBrokenNode,
-    checkForUnsupportedNode,
-  } = require('../lib/utils/unsupported.js')
+  const { checkForBrokenNode, checkForUnsupportedNode } = require('../lib/utils/unsupported.js')
 
   checkForBrokenNode()
 
@@ -18,14 +15,16 @@ module.exports = async (process) => {
 
   checkForUnsupportedNode()
 
-  const npm = require('../lib/npm.js')
+  const Npm = require('../lib/npm.js')
+  const npm = new Npm()
   const exitHandler = require('../lib/utils/exit-handler.js')
   exitHandler.setNpm(npm)
 
   // if npm is called as "npmg" or "npm_g", then
   // run in global mode.
-  if (process.argv[1][process.argv[1].length - 1] === 'g')
+  if (process.argv[1][process.argv[1].length - 1] === 'g') {
     process.argv.splice(1, 1, 'npm', '-g')
+  }
 
   const replaceInfo = require('../lib/utils/replace-info.js')
   log.verbose('cli', replaceInfo(process.argv))
@@ -38,6 +37,7 @@ module.exports = async (process) => {
 
   const updateNotifier = require('../lib/utils/update-notifier.js')
 
+  let cmd
   // now actually fire up npm and run the command.
   // this is how to use npm programmatically:
   try {
@@ -55,24 +55,24 @@ module.exports = async (process) => {
 
     updateNotifier(npm)
 
-    const cmd = npm.argv.shift()
+    cmd = npm.argv.shift()
     if (!cmd) {
-      npm.output(npm.usage)
+      npm.output(await npm.usage)
       process.exitCode = 1
       return exitHandler()
     }
 
-    const impl = npm.commands[cmd]
-    if (!impl) {
+    await npm.exec(cmd, npm.argv)
+    exitHandler()
+  } catch (err) {
+    if (err.code === 'EUNKNOWNCOMMAND') {
       const didYouMean = require('./utils/did-you-mean.js')
       const suggestions = await didYouMean(npm, npm.localPrefix, cmd)
-      npm.output(`Unknown command: "${cmd}"${suggestions}\n\nTo see a list of supported npm commands, run:\n  npm help`)
+      npm.output(`Unknown command: "${cmd}"${suggestions}\n`)
+      npm.output('To see a list of supported npm commands, run:\n  npm help')
       process.exitCode = 1
       return exitHandler()
     }
-
-    impl(npm.argv, exitHandler)
-  } catch (err) {
     return exitHandler(err)
   }
 }
