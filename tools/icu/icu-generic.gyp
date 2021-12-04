@@ -64,6 +64,13 @@
             }
           }],
         ],
+        'target_conditions': [
+          ['OS in "ios mac" and host_os=="linux"', {
+            'cflags': [ '-Wno-deprecated-declarations', '-Wno-strict-aliasing' ],
+            'cflags_cc': [ '-frtti' ],
+            'cflags_cc!': [ '-fno-rtti' ],
+          }]
+        ],
         'msvs_settings': {
           'VCCLCompilerTool': {
             'RuntimeTypeInfo': 'true',
