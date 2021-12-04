@@ -197,6 +197,8 @@ For information about the governance of the Node.js project, see
   **Mary Marchini** \<oss@mmarchini.me> (she/her)
 * [MylesBorins](https://github.com/MylesBorins) -
   **Myles Borins** \<myles.borins@gmail.com> (he/him)
+* [richardlau](https://github.com/richardlau) -
+  **Richard Lau** \<rlau@redhat.com>
 * [ronag](https://github.com/ronag) -
   **Robert Nagy** \<ronagy@icloud.com>
 * [targos](https://github.com/targos) -
@@ -325,8 +327,6 @@ For information about the governance of the Node.js project, see
   **Evan Lucas** \<evanlucas@me.com> (he/him)
 * [fhinkel](https://github.com/fhinkel) -
   **Franziska Hinkelmann** \<franziska.hinkelmann@gmail.com> (she/her)
-* [Fishrock123](https://github.com/Fishrock123) -
-  **Jeremiah Senkpiel** \<fishrock123@rocketmail.com>  (he/they)
 * [Flarna](https://github.com/Flarna) -
   **Gerhard Stöbich** \<deb2001-github@yahoo.de>  (he/they)
 * [gabrielschulhof](https://github.com/gabrielschulhof) -
@@ -445,6 +445,8 @@ For information about the governance of the Node.js project, see
   **Rich Trott** \<rtrott@gmail.com> (he/him)
 * [vdeturckheim](https://github.com/vdeturckheim) -
   **Vladimir de Turckheim** \<vlad2t@hotmail.com> (he/him)
+* [VoltrexMaster](https://github.com/VoltrexMaster) -
+  **Voltrex** \<mohammadkeyvanzade94@gmail.com> (he/him)
 * [watilde](https://github.com/watilde) -
   **Daijiro Wachi** \<daijiro.wachi@gmail.com> (he/him)
 * [watson](https://github.com/watson) -
@@ -453,8 +455,6 @@ For information about the governance of the Node.js project, see
   **Khaidi Chu** \<i@2333.moe> (he/him)
 * [yashLadha](https://github.com/yashLadha) -
   **Yash Ladha** \<yash@yashladha.in> (he/him)
-* [yhwang](https://github.com/yhwang) -
-  **Yihong Wang** \<yh.wang@ibm.com>
 * [yosuke-furukawa](https://github.com/yosuke-furukawa) -
   **Yosuke Furukawa** \<yosuke.furukawa@gmail.com>
 * [ZYSzys](https://github.com/ZYSzys) -
@@ -499,6 +499,8 @@ For information about the governance of the Node.js project, see
   **Alexander Makarenko** \<estliberitas@gmail.com>
 * [firedfox](https://github.com/firedfox) -
   **Daniel Wang** \<wangyang0123@gmail.com>
+* [Fishrock123](https://github.com/Fishrock123) -
+  **Jeremiah Senkpiel** \<fishrock123@rocketmail.com> (he/they)
 * [gdams](https://github.com/gdams) -
   **George Adams** \<gadams@microsoft.com> (he/him)
 * [geek](https://github.com/geek) -
@@ -617,6 +619,8 @@ For information about the governance of the Node.js project, see
   **Vse Mozhet Byt** \<vsemozhetbyt@gmail.com> (he/him)
 * [whitlockjc](https://github.com/whitlockjc) -
   **Jeremy Whitlock** \<jwhitlock@apache.org>
+* [yhwang](https://github.com/yhwang) -
+  **Yihong Wang** \<yh.wang@ibm.com>
 * [yorkie](https://github.com/yorkie) -
   **Yorkie Liu** \<yorkiefixer@gmail.com>
 
