@@ -60,7 +60,7 @@
     }, 'OS=="ios"', {
       'defines': [
         'OPENSSLDIR="/etc/ssl"',
-        'MODULESDIR="/dev/null"'
+        'MODULESDIR="/dev/null"',
         'ENGINESDIR="/dev/null"',
       ],
     }, {

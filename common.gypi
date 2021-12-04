@@ -356,7 +356,7 @@
           ['_type!="static_library"', {
             'xcode_settings': {'OTHER_LDFLAGS': ['-fsanitize=address']},
           }],
-          ['OS=="ios" and _toolset=="target" hos_os=="linux"', {
+          ['OS=="ios" and _toolset=="target" host_os=="linux"', {
             'ldflags': ['-fsanitize=address'],
             'cflags+': [
               '-fno-omit-frame-pointer',
@@ -539,15 +539,28 @@
               ],
             },
           }],
-          ['_toolset=="host" and host_os=="linux"', {
+          ['_toolset=="host" and host_os!="mac"', {
             'defines!': ['_DARWIN_USE_64_BIT_INODE=1'],
           }],
           ['_toolset=="target" and host_os!="mac"', {
+            'cflags!': [
+              '-fasm-blocks',
+              '-mdynamic-no-pic',
+              '-mpascal-strings',
+              '-Wl,-prebind',
+            ],
             'cflags': [
+              '-Wall',
+              '-Wendif-labels',
+              '-W',
+              '-Wno-unused-parameter',
               '-fno-strict-aliasing',
+              '-fno-rtti',
+              '-fno-exceptions',
+              '-miphoneos-version-min=12.0',
             ],
           }],
-          ['_toolset=="target" and _type!="static_library" and host_os!="mac"', {
+          ['_toolset=="target" and host_os!="mac" and _type!="static_library"', {
             'ldflags': [
               '-Wl,-no_pie',
               '-Wl,-search_paths_first',

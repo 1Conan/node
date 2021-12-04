@@ -804,8 +804,8 @@ Type OperationTyper::NumberModulus(Type lhs, Type rhs) {
 
     // For integer inputs {lhs} and {rhs} we can infer a precise type.
     if (lhs.Is(cache_->kInteger) && rhs.Is(cache_->kInteger)) {
-      double labs = std::max(std::abs(lmin), std::abs(lmax));
-      double rabs = std::max(std::abs(rmin), std::abs(rmax)) - 1;
+      double labs = std::max(std::fabs(lmin), std::fabs(lmax));
+      double rabs = std::max(std::fabs(rmin), std::fabs(rmax)) - 1;
       double abs = std::min(labs, rabs);
       double min = 0.0, max = 0.0;
       if (lmin >= 0.0) {
