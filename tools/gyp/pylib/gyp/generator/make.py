@@ -217,6 +217,32 @@ cmd_solink = $(LINK.$(TOOLSET)) -shared $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o 
 quiet_cmd_solink_module = SOLINK_MODULE($(TOOLSET)) $@
 cmd_solink_module = $(LINK.$(TOOLSET)) -bundle $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o $@ $(filter-out FORCE_DO_CMD, $^) $(LIBS)
 
+# Note: this does not handle spaces in paths
+define xargs
+	$(1) $(word 1,$(2))
+$(if $(word 2,$(2)),$(call xargs,$(1),$(wordlist 2,$(words $(2)),$(2))))
+endef
+
+define write-to-file
+	@: >$(1)
+$(call xargs,@printf "%s\\n" >>$(1),$(2))
+endef
+
+OBJ_FILE_LIST := ar-file-list
+
+# cctools AR doesn't support @file
+define create_archive
+        rm -f $(1) $(1).$(OBJ_FILE_LIST); mkdir -p `dirname $(1)`
+        $(call write-to-file,$(1).$(OBJ_FILE_LIST),$(filter %.o,$(2)))
+        cat $(1).$(OBJ_FILE_LIST) | xargs $(AR.$(TOOLSET)) crs $(1)
+endef
+
+define create_thin_archive
+        rm -f $(1) $(OBJ_FILE_LIST); mkdir -p `dirname $(1)`
+        $(call write-to-file,$(1).$(OBJ_FILE_LIST),$(filter %.o,$(2)))
+        cat $(1).$(OBJ_FILE_LIST) | xargs $(AR.$(TOOLSET)) crsT $(1)
+endef
+
 ifeq ($(shell uname -s),Linux)
 # Linux
 quiet_cmd_link_host = LINK($(TOOLSET)) $@
@@ -1854,7 +1880,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
                 self.flavor not in ("mac", "ios", "openbsd", "netbsd", "win")
                 and not self.is_standalone_static_library
             ):
-                if self.flavor in ('linux', 'android'):
+                if self.flavor in ('ios', 'linux', 'android'):
                   self.WriteMakeRule(
                     [self.output_binary],
                     link_deps,
@@ -1869,7 +1895,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
                       postbuilds=postbuilds,
                   )
             else:
-              if self.flavor in ('linux', 'android'):
+              if self.flavor in ('ios', 'linux', 'android'):
                 self.WriteMakeRule(
                     [self.output_binary],
                     link_deps,
