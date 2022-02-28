@@ -344,7 +344,10 @@ The location information will be one of:
 * `plain-filename.js:line:column`, if the frame represents a call internal
   to Node.js.
 * `/absolute/path/to/file.js:line:column`, if the frame represents a call in
-  a user program, or its dependencies.
+  a user program (using CommonJS module system), or its dependencies.
+* `<transport-protocol>:///url/to/module/file.mjs:line:column`, if the frame
+  represents a call in a user program (using ES module system), or
+  its dependencies.
 
 The string representing the stack trace is lazily generated when the
 `error.stack` property is **accessed**.
@@ -1679,6 +1682,36 @@ is set for the `Http2Stream`.
 
 An attempt was made to construct an object using a non-public constructor.
 
+<a id="ERR_IMPORT_ASSERTION_TYPE_FAILED"></a>
+
+### `ERR_IMPORT_ASSERTION_TYPE_FAILED`
+
+<!-- YAML
+added: v16.14.0
+-->
+
+An import assertion has failed, preventing the specified module to be imported.
+
+<a id="ERR_IMPORT_ASSERTION_TYPE_MISSING"></a>
+
+### `ERR_IMPORT_ASSERTION_TYPE_MISSING`
+
+<!-- YAML
+added: v16.14.0
+-->
+
+An import assertion is missing, preventing the specified module to be imported.
+
+<a id="ERR_IMPORT_ASSERTION_TYPE_UNSUPPORTED"></a>
+
+### `ERR_IMPORT_ASSERTION_TYPE_UNSUPPORTED`
+
+<!-- YAML
+added: v16.14.0
+-->
+
+An import assertion is not supported by this version of Node.js.
+
 <a id="ERR_INCOMPATIBLE_OPTION_PAIR"></a>
 
 ### `ERR_INCOMPATIBLE_OPTION_PAIR`
@@ -2504,6 +2537,15 @@ reports.
 An unspecified or non-specific system error has occurred within the Node.js
 process. The error object will have an `err.info` object property with
 additional details.
+
+<a id="ERR_TLS_CERT_ALTNAME_FORMAT"></a>
+
+### `ERR_TLS_CERT_ALTNAME_FORMAT`
+
+This error is thrown by `checkServerIdentity` if a user-supplied
+`subjectaltname` property violates encoding rules. Certificate objects produced
+by Node.js itself always comply with encoding rules and will never cause
+this error.
 
 <a id="ERR_TLS_CERT_ALTNAME_INVALID"></a>
 

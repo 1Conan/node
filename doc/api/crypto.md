@@ -551,6 +551,9 @@ added: v1.0.0
 The `cipher.getAuthTag()` method should only be called after encryption has
 been completed using the [`cipher.final()`][] method.
 
+If the `authTagLength` option was set during the `cipher` instance's creation,
+this function will return exactly `authTagLength` bytes.
+
 ### `cipher.setAAD(buffer[, options])`
 
 <!-- YAML
@@ -2495,10 +2498,16 @@ added: v15.6.0
   * `partialWildcards` {boolean} **Default:** `true`.
   * `multiLabelWildcards` {boolean} **Default:** `false`.
   * `singleLabelSubdomains` {boolean} **Default:** `false`.
-* Returns: {string|undefined} Returns `name` if the certificate matches,
-  `undefined` if it does not.
+* Returns: {string|undefined} Returns a subject name that matches `name`,
+  or `undefined` if no subject name matches `name`.
 
 Checks whether the certificate matches the given host name.
+
+If the certificate matches the given host name, the matching subject name is
+returned. The returned name might be an exact match (e.g., `foo.example.com`)
+or it might contain wildcards (e.g., `*.example.com`). Because host name
+comparisons are case-insensitive, the returned subject name might also differ
+from the given `name` in capitalization.
 
 ### `x509.checkIP(ip[, options])`
 
@@ -2561,15 +2570,41 @@ added: v15.6.0
 
 The SHA-256 fingerprint of this certificate.
 
-### `x509.infoAccess`
+### `x509.fingerprint512`
 
 <!-- YAML
-added: v15.6.0
+added: v16.14.0
 -->
 
 * Type: {string}
 
-The information access content of this certificate.
+The SHA-512 fingerprint of this certificate.
+
+### `x509.infoAccess`
+
+<!-- YAML
+added: v15.6.0
+changes:
+  - version: v16.13.2
+    pr-url: https://github.com/nodejs-private/node-private/pull/300
+    description: Parts of this string may be encoded as JSON string literals
+                 in response to CVE-2021-44532.
+-->
+
+* Type: {string}
+
+A textual representation of the certificate's authority information access
+extension.
+
+This is a line feed separated list of access descriptions. Each line begins with
+the access method and the kind of the access location, followed by a colon and
+the value associated with the access location.
+
+After the prefix denoting the access method and the kind of the access location,
+the remainder of each line might be enclosed in quotes to indicate that the
+value is a JSON string literal. For backward compatibility, Node.js only uses
+JSON string literals within this property when necessary to avoid ambiguity.
+Third-party code should be prepared to handle both possible entry formats.
 
 ### `x509.issuer`
 
@@ -2646,11 +2681,31 @@ The complete subject of this certificate.
 
 <!-- YAML
 added: v15.6.0
+changes:
+  - version: v16.13.2
+    pr-url: https://github.com/nodejs-private/node-private/pull/300
+    description: Parts of this string may be encoded as JSON string literals
+                 in response to CVE-2021-44532.
 -->
 
 * Type: {string}
 
 The subject alternative name specified for this certificate.
+
+This is a comma-separated list of subject alternative names. Each entry begins
+with a string identifying the kind of the subject alternative name followed by
+a colon and the value associated with the entry.
+
+Earlier versions of Node.js incorrectly assumed that it is safe to split this
+property at the two-character sequence `', '` (see [CVE-2021-44532][]). However,
+both malicious and legitimate certificates can contain subject alternative names
+that include this sequence when represented as a string.
+
+After the prefix denoting the type of the entry, the remainder of each entry
+might be enclosed in quotes to indicate that the value is a JSON string literal.
+For backward compatibility, Node.js only uses JSON string literals within this
+property when necessary to avoid ambiguity. Third-party code should be prepared
+to handle both possible entry formats.
 
 ### `x509.toJSON()`
 
@@ -5838,6 +5893,7 @@ See the [list of SSL OP Flags][] for details.
 
 [AEAD algorithms]: https://en.wikipedia.org/wiki/Authenticated_encryption
 [CCM mode]: #ccm-mode
+[CVE-2021-44532]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44532
 [Caveats]: #support-for-weak-or-compromised-algorithms
 [Crypto constants]: #crypto-constants
 [HTML 5.2]: https://www.w3.org/TR/html52/changes.html#features-removed
