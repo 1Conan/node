@@ -219,9 +219,10 @@ Supported platforms and toolchains change with each major version of Node.js.
 This document is only valid for the current major version of Node.js.
 Consult previous versions of this document for older versions of Node.js:
 
+* [Node.js 17](https://github.com/nodejs/node/blob/v17.x/BUILDING.md)
+* [Node.js 16](https://github.com/nodejs/node/blob/v16.x/BUILDING.md)
 * [Node.js 14](https://github.com/nodejs/node/blob/v14.x/BUILDING.md)
 * [Node.js 12](https://github.com/nodejs/node/blob/v12.x/BUILDING.md)
-* [Node.js 10](https://github.com/nodejs/node/blob/v10.x/BUILDING.md)
 
 ## Building Node.js on supported platforms
 
@@ -233,17 +234,18 @@ The Node.js project supports Python >= 3 for building and testing.
 
 #### Unix prerequisites
 
-* `gcc` and `g++` >= 8.3 or newer, or
+* `gcc` and `g++` >= 8.3 or newer
 * GNU Make 3.81 or newer
 * Python 3.6, 3.7, 3.8, 3.9, or 3.10 (see note above)
+  * For test coverage, your Python installation must include pip.
 
 Installation via Linux package manager can be achieved with:
 
-* Ubuntu, Debian: `sudo apt-get install python3 g++ make`
-* Fedora: `sudo dnf install python3 gcc-c++ make`
-* CentOS and RHEL: `sudo yum install python3 gcc-c++ make`
-* OpenSUSE: `sudo zypper install python3 gcc-c++ make`
-* Arch Linux, Manjaro: `sudo pacman -S python gcc make`
+* Ubuntu, Debian: `sudo apt-get install python3 g++ make python3-pip`
+* Fedora: `sudo dnf install python3 gcc-c++ make python3-pip`
+* CentOS and RHEL: `sudo yum install python3 gcc-c++ make python3-pip`
+* OpenSUSE: `sudo zypper install python3 gcc-c++ make python3-pip`
+* Arch Linux, Manjaro: `sudo pacman -S python gcc make python-pip`
 
 FreeBSD and OpenBSD users may also need to install `libexecinfo`.
 
@@ -251,6 +253,7 @@ FreeBSD and OpenBSD users may also need to install `libexecinfo`.
 
 * Xcode Command Line Tools >= 11 for macOS
 * Python 3.6, 3.7, 3.8, 3.9, or 3.10 (see note above)
+  * For test coverage, your Python installation must include pip.
 
 macOS users can install the `Xcode Command Line Tools` by running
 `xcode-select --install`. Alternatively, if you already have the full Xcode
@@ -403,7 +406,7 @@ by providing the name of a subsystem:
 
 ```text
 $ make coverage-clean
-$ NODE_V8_COVERAGE=coverage/tmp tools/test.py -J --mode=release child-process
+$ NODE_V8_COVERAGE=coverage/tmp tools/test.py --mode=release child-process
 $ make coverage-report-js
 ```
 
@@ -568,7 +571,7 @@ to run it again before invoking `make -j4`.
 
 ##### Option 1: Manual install
 
-* [Python 3.9](https://www.microsoft.com/en-us/p/python-39/9p7qfqmjrfp7)
+* [Python 3.10](https://www.microsoft.com/en-us/p/python-310/9pjpw5ldxlz5)
 * The "Desktop development with C++" workload from
   [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) or
   the "C++ build tools" workload from the

@@ -1,7 +1,6 @@
 const fetch = require('npm-registry-fetch')
-const log = require('npmlog')
 const npa = require('npm-package-arg')
-
+const log = require('../utils/log-shim')
 const getIdentity = require('../utils/get-identity')
 
 const BaseCommand = require('../base-command.js')
@@ -30,12 +29,13 @@ class Star extends BaseCommand {
     const pkgs = args.map(npa)
     for (const pkg of pkgs) {
       const [username, fullData] = await Promise.all([
-        getIdentity(this.npm, this.npm.flatOptions),
+        getIdentity(this.npm, { ...this.npm.flatOptions, log }),
         fetch.json(pkg.escapedName, {
           ...this.npm.flatOptions,
           spec: pkg,
           query: { write: true },
           preferOnline: true,
+          log,
         }),
       ])
 
@@ -64,6 +64,7 @@ class Star extends BaseCommand {
         spec: pkg,
         method: 'PUT',
         body,
+        log,
       })
 
       this.npm.output(show + ' ' + pkg.name)

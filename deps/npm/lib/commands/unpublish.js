@@ -5,9 +5,13 @@ const libaccess = require('libnpmaccess')
 const npmFetch = require('npm-registry-fetch')
 const libunpub = require('libnpmpublish').unpublish
 const readJson = util.promisify(require('read-package-json'))
-
+const log = require('../utils/log-shim')
 const otplease = require('../utils/otplease.js')
 const getIdentity = require('../utils/get-identity.js')
+
+const LAST_REMAINING_VERSION_ERROR = 'Refusing to delete the last version of the package. ' +
+'It will block from republishing a new version for 24 hours.\n' +
+'Run with --force to do this.'
 
 const BaseCommand = require('../base-command.js')
 class Unpublish extends BaseCommand {
@@ -16,6 +20,11 @@ class Unpublish extends BaseCommand {
   static params = ['dry-run', 'force', 'workspace', 'workspaces']
   static usage = ['[<@scope>/]<pkg>[@<version>]']
 
+  async getKeysOfVersions (name, opts) {
+    const json = await npmFetch.json(npa(name).escapedName, opts)
+    return Object.keys(json.versions)
+  }
+
   async completion (args) {
     const { partialWord, conf } = args
 
@@ -23,7 +32,7 @@ class Unpublish extends BaseCommand {
       return []
     }
 
-    const opts = this.npm.flatOptions
+    const opts = { ...this.npm.flatOptions, log }
     const username = await getIdentity(this.npm, { ...opts }).catch(() => null)
     if (!username) {
       return []
@@ -44,8 +53,7 @@ class Unpublish extends BaseCommand {
       return pkgs
     }
 
-    const json = await npmFetch.json(npa(pkgs[0]).escapedName, opts)
-    const versions = Object.keys(json.versions)
+    const versions = await this.getKeysOfVersions(pkgs[0], opts)
     if (!versions.length) {
       return pkgs
     } else {
@@ -66,8 +74,8 @@ class Unpublish extends BaseCommand {
     let pkgName
     let pkgVersion
 
-    this.npm.log.silly('unpublish', 'args[0]', args[0])
-    this.npm.log.silly('unpublish', 'spec', spec)
+    log.silly('unpublish', 'args[0]', args[0])
+    log.silly('unpublish', 'spec', spec)
 
     if ((!spec || !spec.rawSpec) && !force) {
       throw this.usageError(
@@ -76,7 +84,7 @@ class Unpublish extends BaseCommand {
       )
     }
 
-    const opts = this.npm.flatOptions
+    const opts = { ...this.npm.flatOptions, log }
     if (!spec || path.resolve(spec.name) === this.npm.localPrefix) {
       // if there's a package.json in the current folder, then
       // read the package name and version out of that.
@@ -92,17 +100,31 @@ class Unpublish extends BaseCommand {
         }
       }
 
-      this.npm.log.verbose('unpublish', manifest)
+      log.verbose('unpublish', manifest)
 
       const { name, version, publishConfig } = manifest
       const pkgJsonSpec = npa.resolve(name, version)
       const optsWithPub = { ...opts, publishConfig }
+
+      const versions = await this.getKeysOfVersions(name, optsWithPub)
+      if (versions.length === 1 && !force) {
+        throw this.usageError(
+          LAST_REMAINING_VERSION_ERROR
+        )
+      }
+
       if (!dryRun) {
         await otplease(opts, opts => libunpub(pkgJsonSpec, optsWithPub))
       }
       pkgName = name
       pkgVersion = version ? `@${version}` : ''
     } else {
+      const versions = await this.getKeysOfVersions(spec.name, opts)
+      if (versions.length === 1 && !force) {
+        throw this.usageError(
+          LAST_REMAINING_VERSION_ERROR
+        )
+      }
       if (!dryRun) {
         await otplease(opts, opts => libunpub(spec, opts))
       }

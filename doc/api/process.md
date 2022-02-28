@@ -181,7 +181,10 @@ See [Advanced serialization for `child_process`][] for more details.
 
 <!-- YAML
 added: v10.12.0
+deprecated: v17.6.0
 -->
+
+> Stability: 0 - Deprecated
 
 * `type` {string} The resolution type. One of `'resolve'` or `'reject'`.
 * `promise` {Promise} The promise that resolved or rejected more than once.
@@ -199,6 +202,9 @@ This is useful for tracking potential errors in an application while using the
 `Promise` constructor, as multiple resolutions are silently swallowed. However,
 the occurrence of this event does not necessarily indicate an error. For
 example, [`Promise.race()`][] can trigger a `'multipleResolves'` event.
+
+Because of the unreliability of the event in cases like the
+[`Promise.race()`][] example above it has been deprecated.
 
 ```mjs
 import process from 'process';
@@ -334,10 +340,12 @@ changes:
 
 * `err` {Error} The uncaught exception.
 * `origin` {string} Indicates if the exception originates from an unhandled
-  rejection or from an synchronous error. Can either be `'uncaughtException'` or
-  `'unhandledRejection'`. The latter is only used in conjunction with the
-  [`--unhandled-rejections`][] flag set to `strict` or `throw` and
-  an unhandled rejection.
+  rejection or from a synchronous error. Can either be `'uncaughtException'` or
+  `'unhandledRejection'`. The latter is used when in an exception happens in a
+  `Promise` based async context (or if a `Promise` is rejected) and
+  [`--unhandled-rejections`][] flag set to `strict` or `throw` (which is the
+  default) and the rejection is not handled, or when a rejection happens during
+  the command line entry point's ES module static loading phase.
 
 The `'uncaughtException'` event is emitted when an uncaught JavaScript
 exception bubbles all the way back to the event loop. By default, Node.js
@@ -431,9 +439,11 @@ added:
 * `err` {Error} The uncaught exception.
 * `origin` {string} Indicates if the exception originates from an unhandled
   rejection or from synchronous errors. Can either be `'uncaughtException'` or
-  `'unhandledRejection'`. The latter is only used in conjunction with the
-  [`--unhandled-rejections`][] flag set to `strict` or `throw` and
-  an unhandled rejection.
+  `'unhandledRejection'`. The latter is used when in an exception happens in a
+  `Promise` based async context (or if a `Promise` is rejected) and
+  [`--unhandled-rejections`][] flag set to `strict` or `throw` (which is the
+  default) and the rejection is not handled, or when a rejection happens during
+  the command line entry point's ES module static loading phase.
 
 The `'uncaughtExceptionMonitor'` event is emitted before an
 `'uncaughtException'` event is emitted or a hook installed via
@@ -860,7 +870,7 @@ added: v0.5.0
 
 The operating system CPU architecture for which the Node.js binary was compiled.
 Possible values are: `'arm'`, `'arm64'`, `'ia32'`, `'mips'`,`'mipsel'`, `'ppc'`,
-`'ppc64'`, `'s390'`, `'s390x'`, `'x32'`, and `'x64'`.
+`'ppc64'`, `'s390'`, `'s390x'`, and `'x64'`.
 
 ```mjs
 import { arch } from 'process';
@@ -871,7 +881,7 @@ console.log(`This processor architecture is ${arch}`);
 ```cjs
 const { arch } = require('process');
 
-console.log(`This processor architecture is ${process.arch}`);
+console.log(`This processor architecture is ${arch}`);
 ```
 
 ## `process.argv`
@@ -1817,6 +1827,44 @@ a code.
 Specifying a code to [`process.exit(code)`][`process.exit()`] will override any
 previous setting of `process.exitCode`.
 
+## `process.getActiveResourcesInfo()`
+
+<!-- YAML
+added: v17.3.0
+-->
+
+> Stability: 1 - Experimental
+
+* Returns: {string\[]}
+
+The `process.getActiveResourcesInfo()` method returns an array of strings
+containing the types of the active resources that are currently keeping the
+event loop alive.
+
+```mjs
+import { getActiveResourcesInfo } from 'process';
+import { setTimeout } from 'timers';
+
+console.log('Before:', getActiveResourcesInfo());
+setTimeout(() => {}, 1000);
+console.log('After:', getActiveResourcesInfo());
+// Prints:
+//   Before: [ 'CloseReq', 'TTYWrap', 'TTYWrap', 'TTYWrap' ]
+//   After: [ 'CloseReq', 'TTYWrap', 'TTYWrap', 'TTYWrap', 'Timeout' ]
+```
+
+```cjs
+const { getActiveResourcesInfo } = require('process');
+const { setTimeout } = require('timers');
+
+console.log('Before:', getActiveResourcesInfo());
+setTimeout(() => {}, 1000);
+console.log('After:', getActiveResourcesInfo());
+// Prints:
+//   Before: [ 'TTYWrap', 'TTYWrap', 'TTYWrap' ]
+//   After: [ 'TTYWrap', 'TTYWrap', 'TTYWrap', 'Timeout' ]
+```
+
 ## `process.getegid()`
 
 <!-- YAML
@@ -2571,7 +2619,7 @@ added: v0.1.16
 * {string}
 
 The `process.platform` property returns a string identifying the operating
-system platform on which the Node.js process is running.
+system platform for which the Node.js binary was compiled.
 
 Currently possible values are:
 

@@ -208,9 +208,13 @@ const customTypesMap = {
 
   'Stream': 'stream.html#stream',
   'stream.Duplex': 'stream.html#class-streamduplex',
+  'Duplex': 'stream.html#class-streamduplex',
   'stream.Readable': 'stream.html#class-streamreadable',
+  'Readable': 'stream.html#class-streamreadable',
   'stream.Transform': 'stream.html#class-streamtransform',
+  'Transform': 'stream.html#class-streamtransform',
   'stream.Writable': 'stream.html#class-streamwritable',
+  'Writable': 'stream.html#class-streamwritable',
 
   'Immediate': 'timers.html#class-immediate',
   'Timeout': 'timers.html#class-timeout',
@@ -266,6 +270,11 @@ const customTypesMap = {
     'webstreams.md#class-textencoderstream',
   'TextDecoderStream':
     'webstreams.md#class-textdecoderstream',
+
+  'FormData': 'https://developer.mozilla.org/en-US/docs/Web/API/FormData',
+  'Headers': 'https://developer.mozilla.org/en-US/docs/Web/API/Headers',
+  'Response': 'https://developer.mozilla.org/en-US/docs/Web/API/Response',
+  'Request': 'https://developer.mozilla.org/en-US/docs/Web/API/Request',
 };
 
 const arrayPart = /(?:\[])+$/;

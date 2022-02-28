@@ -1,13 +1,15 @@
 const t = require('tap')
 const { fake: mockNpm } = require('../../fixtures/mock-npm')
 const fs = require('fs')
+const log = require('../../../lib/utils/log-shim')
 
 // The way we set loglevel is kind of convoluted, and there is no way to affect
 // it from these tests, which only interact with lib/publish.js, which assumes
 // that the code that is requiring and calling lib/publish.js has already
 // taken care of the loglevel
-const log = require('npmlog')
-log.level = 'silent'
+const _level = log.level
+t.beforeEach(() => (log.level = 'silent'))
+t.teardown(() => (log.level = _level))
 
 t.cleanSnapshot = data => {
   return data.replace(/^ *"gitHead": .*$\n/gm, '')
@@ -19,13 +21,11 @@ const defaults = Object.entries(definitions).reduce((defaults, [key, def]) => {
   return defaults
 }, {})
 
-t.afterEach(() => (log.level = 'silent'))
-
 t.test(
   /* eslint-disable-next-line max-len */
   'should publish with libnpmpublish, passing through flatOptions and respecting publishConfig.registry',
   async t => {
-    t.plan(6)
+    t.plan(7)
 
     const registry = 'https://some.registry'
     const publishConfig = { registry }
@@ -59,6 +59,7 @@ t.test(
           t.match(manifest, { name: 'my-cool-pkg', version: '1.0.0' }, 'gets manifest')
           t.type(tarData, Buffer, 'tarData is a buffer')
           t.ok(opts, 'gets opts object')
+          t.ok(opts.log, 'gets passed a logger')
           t.same(opts.customValue, true, 'flatOptions values are passed through')
           t.same(opts.registry, registry, 'publishConfig.registry is passed through')
         },
@@ -81,7 +82,7 @@ t.test(
 )
 
 t.test('re-loads publishConfig.registry if added during script process', async t => {
-  t.plan(5)
+  t.plan(6)
   const registry = 'https://some.registry'
   const publishConfig = { registry }
   const testDir = t.testdir({
@@ -112,6 +113,7 @@ t.test('re-loads publishConfig.registry if added during script process', async t
         t.match(manifest, { name: 'my-cool-pkg', version: '1.0.0' }, 'gets manifest')
         t.type(tarData, Buffer, 'tarData is a buffer')
         t.ok(opts, 'gets opts object')
+        t.ok(opts.log, 'gets passed a logger')
         t.same(opts.registry, registry, 'publishConfig.registry is passed through')
       },
     },
@@ -147,7 +149,7 @@ t.test('if loglevel=info and json, should not output package contents', async t 
         id: 'someid',
       }),
       logTar: () => {
-        t.pass('logTar is called')
+        t.fail('logTar is not called in json mode')
       },
     },
     libnpmpublish: {
@@ -188,7 +190,6 @@ t.test(
       ),
     })
 
-    log.level = 'silent'
     const Publish = t.mock('../../../lib/commands/publish.js', {
       '../../../lib/utils/tar.js': {
         getContents: () => ({
@@ -293,7 +294,7 @@ t.test('throws when invalid tag', async t => {
 })
 
 t.test('can publish a tarball', async t => {
-  t.plan(3)
+  t.plan(4)
 
   const testDir = t.testdir({
     tarball: {},
@@ -318,6 +319,7 @@ t.test('can publish a tarball', async t => {
   const Publish = t.mock('../../../lib/commands/publish.js', {
     libnpmpublish: {
       publish: (manifest, tarData, opts) => {
+        t.ok(opts.log, 'gets passed a logger')
         t.match(
           manifest,
           {
@@ -342,8 +344,10 @@ t.test('can publish a tarball', async t => {
 
 t.test('should check auth for default registry', async t => {
   t.plan(2)
-  const Publish = t.mock('../../../lib/commands/publish.js')
   const npm = mockNpm()
+  const registry = npm.config.get('registry')
+  const errorMessage = `This command requires you to be logged in to ${registry}`
+  const Publish = t.mock('../../../lib/commands/publish.js')
   npm.config.getCredentialsByURI = uri => {
     t.same(uri, npm.config.get('registry'), 'gets credentials for expected registry')
     return {}
@@ -352,7 +356,7 @@ t.test('should check auth for default registry', async t => {
 
   await t.rejects(
     publish.exec([]),
-    { message: 'This command requires you to be logged in.', code: 'ENEEDAUTH' },
+    { message: errorMessage, code: 'ENEEDAUTH' },
     'throws when not logged in'
   )
 })
@@ -360,6 +364,7 @@ t.test('should check auth for default registry', async t => {
 t.test('should check auth for configured registry', async t => {
   t.plan(2)
   const registry = 'https://some.registry'
+  const errorMessage = 'This command requires you to be logged in to https://some.registry'
   const Publish = t.mock('../../../lib/commands/publish.js')
   const npm = mockNpm({
     flatOptions: { registry },
@@ -372,7 +377,7 @@ t.test('should check auth for configured registry', async t => {
 
   await t.rejects(
     publish.exec([]),
-    { message: 'This command requires you to be logged in.', code: 'ENEEDAUTH' },
+    { message: errorMessage, code: 'ENEEDAUTH' },
     'throws when not logged in'
   )
 })
@@ -380,6 +385,7 @@ t.test('should check auth for configured registry', async t => {
 t.test('should check auth for scope specific registry', async t => {
   t.plan(2)
   const registry = 'https://some.registry'
+  const errorMessage = 'This command requires you to be logged in to https://some.registry'
   const testDir = t.testdir({
     'package.json': JSON.stringify(
       {
@@ -403,13 +409,13 @@ t.test('should check auth for scope specific registry', async t => {
 
   await t.rejects(
     publish.exec([testDir]),
-    { message: 'This command requires you to be logged in.', code: 'ENEEDAUTH' },
+    { message: errorMessage, code: 'ENEEDAUTH' },
     'throws when not logged in'
   )
 })
 
 t.test('should use auth for scope specific registry', async t => {
-  t.plan(3)
+  t.plan(4)
   const registry = 'https://some.registry'
   const testDir = t.testdir({
     'package.json': JSON.stringify(
@@ -426,6 +432,7 @@ t.test('should use auth for scope specific registry', async t => {
     libnpmpublish: {
       publish: (manifest, tarData, opts) => {
         t.ok(opts, 'gets opts object')
+        t.ok(opts.log, 'gets passed a logger')
         t.same(opts['@npm:registry'], registry, 'scope specific registry is passed through')
       },
     },
@@ -443,7 +450,7 @@ t.test('should use auth for scope specific registry', async t => {
 })
 
 t.test('read registry only from publishConfig', async t => {
-  t.plan(3)
+  t.plan(4)
 
   const registry = 'https://some.registry'
   const publishConfig = { registry }
@@ -462,6 +469,7 @@ t.test('read registry only from publishConfig', async t => {
   const Publish = t.mock('../../../lib/commands/publish.js', {
     libnpmpublish: {
       publish: (manifest, tarData, opts) => {
+        t.ok(opts.log, 'gets passed a logger')
         t.match(manifest, { name: 'my-cool-pkg', version: '1.0.0' }, 'gets manifest')
         t.same(opts.registry, registry, 'publishConfig is passed through')
       },
@@ -478,7 +486,7 @@ t.test('read registry only from publishConfig', async t => {
 })
 
 t.test('able to publish after if encountered multiple configs', async t => {
-  t.plan(2)
+  t.plan(3)
 
   const registry = 'https://some.registry'
   const tag = 'better-tag'
@@ -507,6 +515,7 @@ t.test('able to publish after if encountered multiple configs', async t => {
   const Publish = t.mock('../../../lib/commands/publish.js', {
     libnpmpublish: {
       publish: (manifest, tarData, opts) => {
+        t.ok(opts.log, 'gets passed a logger')
         t.same(opts.defaultTag, tag, 'gets option for expected tag')
       },
     },
@@ -681,9 +690,12 @@ t.test('private workspaces', async t => {
   }
 
   t.test('with color', async t => {
+    t.plan(4)
+
+    log.level = 'info'
     const Publish = t.mock('../../../lib/commands/publish.js', {
       ...mocks,
-      npmlog: {
+      'proc-log': {
         notice () {},
         verbose () {},
         warn (title, msg) {
@@ -707,9 +719,12 @@ t.test('private workspaces', async t => {
   })
 
   t.test('colorless', async t => {
+    t.plan(4)
+
+    log.level = 'info'
     const Publish = t.mock('../../../lib/commands/publish.js', {
       ...mocks,
-      npmlog: {
+      'proc-log': {
         notice () {},
         verbose () {},
         warn (title, msg) {
@@ -730,6 +745,8 @@ t.test('private workspaces', async t => {
   })
 
   t.test('unexpected error', async t => {
+    t.plan(2)
+
     const Publish = t.mock('../../../lib/commands/publish.js', {
       ...mocks,
       libnpmpublish: {
@@ -737,12 +754,14 @@ t.test('private workspaces', async t => {
           if (manifest.private) {
             throw new Error('ERR')
           }
-
+          t.ok(opts.log, 'gets passed a logger')
           publishes.push(manifest)
         },
       },
-      npmlog: {
-        notice () {},
+      'proc-log': {
+        notice (__, msg) {
+          t.match(msg, 'Publishing to https://registry.npmjs.org/')
+        },
         verbose () {},
       },
     })
@@ -755,6 +774,8 @@ t.test('private workspaces', async t => {
 })
 
 t.test('runs correct lifecycle scripts', async t => {
+  t.plan(5)
+
   const testDir = t.testdir({
     'package.json': JSON.stringify(
       {
@@ -773,6 +794,7 @@ t.test('runs correct lifecycle scripts', async t => {
   })
 
   const scripts = []
+  log.level = 'info'
   const Publish = t.mock('../../../lib/commands/publish.js', {
     '@npmcli/run-script': args => {
       scripts.push(args)
@@ -810,6 +832,8 @@ t.test('runs correct lifecycle scripts', async t => {
 })
 
 t.test('does not run scripts on --ignore-scripts', async t => {
+  t.plan(4)
+
   const testDir = t.testdir({
     'package.json': JSON.stringify(
       {
@@ -821,6 +845,7 @@ t.test('does not run scripts on --ignore-scripts', async t => {
     ),
   })
 
+  log.level = 'info'
   const Publish = t.mock('../../../lib/commands/publish.js', {
     '@npmcli/run-script': () => {
       t.fail('should not call run-script')

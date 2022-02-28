@@ -1,13 +1,11 @@
 const { resolve } = require('path')
-
 const semver = require('semver')
 const libnpmdiff = require('libnpmdiff')
 const npa = require('npm-package-arg')
 const Arborist = require('@npmcli/arborist')
-const npmlog = require('npmlog')
 const pacote = require('pacote')
 const pickManifest = require('npm-pick-manifest')
-
+const log = require('../utils/log-shim')
 const readPackageName = require('../utils/read-package-name.js')
 const BaseCommand = require('../base-command.js')
 
@@ -57,12 +55,13 @@ class Diff extends BaseCommand {
     }
 
     const [a, b] = await this.retrieveSpecs(specs)
-    npmlog.info('diff', { src: a, dst: b })
+    log.info('diff', { src: a, dst: b })
 
     const res = await libnpmdiff([a, b], {
       ...this.npm.flatOptions,
       diffFiles: args,
       where: this.top,
+      log,
     })
     return this.npm.output(res)
   }
@@ -83,7 +82,7 @@ class Diff extends BaseCommand {
     try {
       name = await readPackageName(this.prefix)
     } catch (e) {
-      npmlog.verbose('diff', 'could not read project dir package.json')
+      log.verbose('diff', 'could not read project dir package.json')
     }
 
     if (!name) {
@@ -116,7 +115,7 @@ class Diff extends BaseCommand {
     try {
       pkgName = await readPackageName(this.prefix)
     } catch (e) {
-      npmlog.verbose('diff', 'could not read project dir package.json')
+      log.verbose('diff', 'could not read project dir package.json')
       noPackageJson = true
     }
 
@@ -154,7 +153,7 @@ class Diff extends BaseCommand {
           actualTree.inventory.query('name', spec.name)
             .values().next().value
       } catch (e) {
-        npmlog.verbose('diff', 'failed to load actual install tree')
+        log.verbose('diff', 'failed to load actual install tree')
       }
 
       if (!node || !node.name || !node.package || !node.package.version) {
@@ -195,6 +194,7 @@ class Diff extends BaseCommand {
         const packument = await pacote.packument(spec, {
           ...this.npm.flatOptions,
           preferOnline: true,
+          log,
         })
         bSpec = pickManifest(
           packument,
@@ -227,7 +227,7 @@ class Diff extends BaseCommand {
       try {
         pkgName = await readPackageName(this.prefix)
       } catch (e) {
-        npmlog.verbose('diff', 'could not read project dir package.json')
+        log.verbose('diff', 'could not read project dir package.json')
       }
 
       if (!pkgName) {
@@ -261,7 +261,7 @@ class Diff extends BaseCommand {
       const arb = new Arborist(opts)
       actualTree = await arb.loadActual(opts)
     } catch (e) {
-      npmlog.verbose('diff', 'failed to load actual install tree')
+      log.verbose('diff', 'failed to load actual install tree')
     }
 
     return specs.map(i => {

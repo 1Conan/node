@@ -1,6 +1,6 @@
-const log = require('npmlog')
-const getAuth = require('npm-registry-fetch/auth.js')
+const getAuth = require('npm-registry-fetch/lib/auth.js')
 const npmFetch = require('npm-registry-fetch')
+const log = require('../utils/log-shim')
 const BaseCommand = require('../base-command.js')
 
 class Logout extends BaseCommand {
@@ -25,6 +25,7 @@ class Logout extends BaseCommand {
         ...this.npm.flatOptions,
         method: 'DELETE',
         ignoreBody: true,
+        log,
       })
     } else if (auth.isBasicAuth) {
       log.verbose('logout', `clearing user credentials for ${reg}`)

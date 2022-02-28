@@ -8,7 +8,7 @@ description: Working with workspaces
 
 **Workspaces** is a generic term that refers to the set of features in the
 npm cli that provides support to managing multiple packages from your local
-files system from within a singular top-level, root package.
+file system from within a singular top-level, root package.
 
 This set of features makes up for a much more streamlined workflow handling
 linked packages from the local file system. Automating the linking process
@@ -30,24 +30,25 @@ Workspaces are usually defined via the `workspaces` property of the
 {
   "name": "my-workspaces-powered-project",
   "workspaces": [
-    "workspace-a"
+    "packages/a"
   ]
 }
 ```
 
 Given the above `package.json` example living at a current working
-directory `.` that contains a folder named `workspace-a` that itself contains
+directory `.` that contains a folder named `packages/a` that itself contains
 a `package.json` inside it, defining a Node.js package, e.g:
 
 ```
 .
 +-- package.json
-`-- workspace-a
-   `-- package.json
+`-- packages
+   +-- a
+   |   `-- package.json
 ```
 
 The expected result once running `npm install` in this current working
-directory `.` is that the folder `workspace-a` will get symlinked to the
+directory `.` is that the folder `packages/a` will get symlinked to the
 `node_modules` folder of the current working dir.
 
 Below is a post `npm install` example, given that same previous example
@@ -56,11 +57,12 @@ structure of files and folders:
 ```
 .
 +-- node_modules
-|  `-- workspace-a -> ../workspace-a
+|  `-- packages/a -> ../packages/a
 +-- package-lock.json
 +-- package.json
-`-- workspace-a
-   `-- package.json
+`-- packages
+   +-- a
+   |   `-- package.json
 ```
 
 ### Getting started with workspaces

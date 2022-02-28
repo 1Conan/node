@@ -1,8 +1,9 @@
 'use strict';
 
 const common = require('../common');
-if (!common.hasCrypto)
-  common.skip('missing crypto');
+if ((!common.hasCrypto) || (!common.hasIntl)) {
+  common.skip('ESLint tests require crypto and Intl');
+}
 
 common.skipIfEslintMissing();
 
@@ -97,6 +98,34 @@ new RuleTester({
           const obj = { rename };
         `,
         options: [{ name: 'Function' }],
+      },
+      {
+        code: 'function identifier() {}',
+        options: [{ name: 'identifier' }]
+      },
+      {
+        code: 'function* identifier() {}',
+        options: [{ name: 'identifier' }]
+      },
+      {
+        code: 'class identifier {}',
+        options: [{ name: 'identifier' }]
+      },
+      {
+        code: 'new class { identifier(){} }',
+        options: [{ name: 'identifier' }]
+      },
+      {
+        code: 'const a = { identifier: \'4\' }',
+        options: [{ name: 'identifier' }]
+      },
+      {
+        code: 'identifier:{const a = 4}',
+        options: [{ name: 'identifier' }]
+      },
+      {
+        code: 'switch(0){case identifier:}',
+        options: [{ name: 'identifier' }]
       },
     ],
     invalid: [

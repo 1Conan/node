@@ -5,8 +5,8 @@ const reifyFinish = require('../utils/reify-finish.js')
 const runScript = require('@npmcli/run-script')
 const fs = require('fs')
 const readdir = util.promisify(fs.readdir)
-
-const log = require('npmlog')
+const log = require('../utils/log-shim.js')
+const validateLockfile = require('../utils/validate-lockfile.js')
 
 const removeNodeModules = async where => {
   const rimrafOpts = { glob: false }
@@ -38,8 +38,9 @@ class CI extends ArboristWorkspaceCmd {
     const where = this.npm.prefix
     const opts = {
       ...this.npm.flatOptions,
+      packageLock: true, // npm ci should never skip lock files
       path: where,
-      log: this.npm.log,
+      log,
       save: false, // npm ci should never modify the lockfile or package.json
       workspaces: this.workspaceNames,
     }
@@ -56,6 +57,28 @@ class CI extends ArboristWorkspaceCmd {
       }),
       removeNodeModules(where),
     ])
+
+    // retrieves inventory of packages from loaded virtual tree (lock file)
+    const virtualInventory = new Map(arb.virtualTree.inventory)
+
+    // build ideal tree step needs to come right after retrieving the virtual
+    // inventory since it's going to erase the previous ref to virtualTree
+    await arb.buildIdealTree()
+
+    // verifies that the packages from the ideal tree will match
+    // the same versions that are present in the virtual tree (lock file)
+    // throws a validation error in case of mismatches
+    const errors = validateLockfile(virtualInventory, arb.idealTree.inventory)
+    if (errors.length) {
+      throw new Error(
+        '`npm ci` can only install packages when your package.json and ' +
+        'package-lock.json or npm-shrinkwrap.json are in sync. Please ' +
+        'update your lock file with `npm install` ' +
+        'before continuing.\n\n' +
+        errors.join('\n') + '\n'
+      )
+    }
+
     await arb.reify(opts)
 
     const ignoreScripts = this.npm.config.get('ignore-scripts')

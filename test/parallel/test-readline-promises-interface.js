@@ -797,6 +797,24 @@ for (let i = 0; i < 12; i++) {
     fi.emit('data', 'asdf\n');
   }
 
+  // Ensure that options.signal.removeEventListener was called
+  {
+    const ac = new AbortController();
+    const signal = ac.signal;
+    const [rli] = getInterface({ terminal });
+    signal.removeEventListener = common.mustCall(
+      (event, onAbortFn) => {
+        assert.strictEqual(event, 'abort');
+        assert.strictEqual(onAbortFn.name, 'onAbort');
+      });
+
+    rli.question('hello?', { signal }).then(common.mustCall());
+
+    rli.write('bar\n');
+    ac.abort();
+    rli.close();
+  }
+
   // Sending a blank line
   {
     const [rli, fi] = getInterface({ terminal });
@@ -909,6 +927,15 @@ for (let i = 0; i < 12; i++) {
     rli.write('bar\n');
     rli.close();
   }
+
+  (async () => {
+    const [rli] = getInterface({ terminal });
+    const signal = AbortSignal.abort('boom');
+    await assert.rejects(rli.question('hello', { signal }), {
+      cause: 'boom',
+    });
+    rli.close();
+  })().then(common.mustCall());
 
   // Throw an error when question is executed with an aborted signal
   {

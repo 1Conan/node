@@ -1,8 +1,7 @@
-const log = require('npmlog')
 const npa = require('npm-package-arg')
 const regFetch = require('npm-registry-fetch')
 const semver = require('semver')
-
+const log = require('../utils/log-shim')
 const otplease = require('../utils/otplease.js')
 const readPackageName = require('../utils/read-package-name.js')
 const BaseCommand = require('../base-command.js')
@@ -30,7 +29,10 @@ class DistTag extends BaseCommand {
   }
 
   async exec ([cmdName, pkg, tag]) {
-    const opts = this.npm.flatOptions
+    const opts = {
+      ...this.npm.flatOptions,
+      log,
+    }
 
     if (['add', 'a', 'set', 's'].includes(cmdName)) {
       return this.add(pkg, tag, opts)

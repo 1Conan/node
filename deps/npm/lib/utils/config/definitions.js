@@ -472,7 +472,10 @@ define('color', {
   flatten (key, obj, flatOptions) {
     flatOptions.color = !obj.color ? false
       : obj.color === 'always' ? true
-      : process.stdout.isTTY
+      : !!process.stdout.isTTY
+    flatOptions.logColor = !obj.color ? false
+      : obj.color === 'always' ? true
+      : !!process.stderr.isTTY
   },
 })
 
@@ -1211,8 +1214,8 @@ define('loglevel', {
     'silly',
   ],
   description: `
-    What level of logs to report.  On failure, *all* logs are written to
-    \`npm-debug.log\` in the current working directory.
+    What level of logs to report.  All logs are written to a debug log,
+    with the path to that file printed if the execution of a command fails.
 
     Any logs of a higher level than the setting are shown. The default is
     "notice".
@@ -1414,6 +1417,8 @@ define('package-lock', {
     When package package-locks are disabled, automatic pruning of extraneous
     modules will also be disabled.  To remove extraneous modules with
     package-locks disabled use \`npm prune\`.
+
+    This configuration does not affect \`npm ci\`.
   `,
   flatten: (key, obj, flatOptions) => {
     flatten(key, obj, flatOptions)
@@ -1450,6 +1455,7 @@ define('pack-destination', {
   description: `
     Directory in which \`npm pack\` will save tarballs.
   `,
+  flatten,
 })
 
 define('parseable', {
@@ -1533,6 +1539,10 @@ define('progress', {
 
     Set to \`false\` to suppress the progress bar.
   `,
+  flatten (key, obj, flatOptions) {
+    flatOptions.progress = !obj.progress ? false
+      : !!process.stderr.isTTY && process.env.TERM !== 'dumb'
+  },
 })
 
 define('proxy', {
@@ -1576,14 +1586,18 @@ define('registry', {
 
 define('save', {
   default: true,
-  usage: '-S|--save|--no-save|--save-prod|--save-dev|--save-optional|--save-peer',
+  defaultDescription: `\`true\` unless when using \`npm update\` or
+  \`npm dedupe\` where it defaults to \`false\``,
+  usage: '-S|--save|--no-save|--save-prod|--save-dev|--save-optional|--save-peer|--save-bundle',
   type: Boolean,
   short: 'S',
   description: `
-    Save installed packages to a package.json file as dependencies.
+    Save installed packages to a \`package.json\` file as dependencies.
 
     When used with the \`npm rm\` command, removes the dependency from
-    package.json.
+    \`package.json\`.
+
+    Will also prevent writing to \`package-lock.json\` if set to \`false\`.
   `,
   flatten,
 })
@@ -1597,7 +1611,7 @@ define('save-bundle', {
     \`--save-dev\`, or \`--save-optional\`, then also put it in the
     \`bundleDependencies\` list.
 
-    Ignore if \`--save-peer\` is set, since peerDependencies cannot be bundled.
+    Ignored if \`--save-peer\` is set, since peerDependencies cannot be bundled.
   `,
   flatten (key, obj, flatOptions) {
     // XXX update arborist to just ignore it if resulting saveType is peer
@@ -1681,7 +1695,7 @@ define('save-peer', {
   default: false,
   type: Boolean,
   description: `
-    Save installed packages. to a package.json file as \`peerDependencies\`
+    Save installed packages to a package.json file as \`peerDependencies\`
   `,
   flatten (key, obj, flatOptions) {
     if (!obj[key]) {
@@ -1782,7 +1796,10 @@ define('scope', {
   `,
   flatten (key, obj, flatOptions) {
     const value = obj[key]
-    flatOptions.projectScope = value && !/^@/.test(value) ? `@${value}` : value
+    const scope = value && !/^@/.test(value) ? `@${value}` : value
+    flatOptions.scope = scope
+    // projectScope is kept for compatibility with npm-registry-fetch
+    flatOptions.projectScope = scope
   },
 })
 
