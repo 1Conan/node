@@ -876,14 +876,7 @@
                     '<(V8_ROOT)/src/trap-handler/handler-outside-win.cc',
                   ],
                 }],
-                ['host_arch=="x64" and (OS=="linux" or OS=="mac" or OS=="win")', {
-                  'sources': [
-                    '<(V8_ROOT)/src/trap-handler/handler-outside-simulator.cc',
-                  ],
-                }],
-              ],
-              'target_conditions': [
-                ['host_arch=="x64" and OS=="ios" and _toolset=="host"', {
+                ['host_arch=="x64" and (OS=="linux" or OS=="mac" or OS=="ios" or OS=="win")', {
                   'sources': [
                     '<(V8_ROOT)/src/trap-handler/handler-outside-simulator.cc',
                   ],
