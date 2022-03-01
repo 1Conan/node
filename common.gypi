@@ -564,10 +564,6 @@
               '-Wl,-prebind',
             ],
             'cflags': [
-              '-Wall',
-              '-Wendif-labels',
-              '-W',
-              '-Wno-unused-parameter',
               '-fno-strict-aliasing',
               '-fno-rtti',
               '-fno-exceptions',
