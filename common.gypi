@@ -541,7 +541,7 @@
           ['_type!="static_library"', {
             'xcode_settings': {
               'OTHER_LDFLAGS': [
-                '-Wl,-no_pie',
+                '-Wl,-pie',
                 '-Wl,-search_paths_first',
               ],
             },
@@ -565,19 +565,14 @@
           }],
           ['_toolset=="target" and host_os!="mac" and _type!="static_library"', {
             'ldflags': [
-              '-Wl,-no_pie',
+              '-Wl,-pie',
               '-Wl,-search_paths_first',
             ],
           }],
         ],
         'conditions': [
           ['target_arch=="arm64"', {
-            'xcode_settings': {
-              'ARCHS': ['arm64'],
-              'OTHER_LDFLAGS!': [
-                '-Wl,-no_pie',
-              ],
-            },
+            'xcode_settings': {'ARCHS': ['arm64']},
           }],
           ['clang==1', {
             'xcode_settings': {
@@ -628,12 +623,7 @@
             'xcode_settings': {'ARCHS': ['x86_64']},
           }],
           ['target_arch=="arm64"', {
-            'xcode_settings': {
-              'ARCHS': ['arm64'],
-              'OTHER_LDFLAGS!': [
-                '-Wl,-no_pie',
-              ],
-            },
+            'xcode_settings': {'ARCHS': ['arm64']},
           }],
           ['clang==1', {
             'xcode_settings': {

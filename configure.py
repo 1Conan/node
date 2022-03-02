@@ -1524,7 +1524,7 @@ def configure_openssl(o):
 
 def configure_static(o):
   if options.fully_static or options.partly_static:
-    if flavor == 'mac':
+    if flavor in ('mac', 'ios'):
       warn("Generation of static executable will not work on OSX "
             "when using the default compilation environment")
       return
@@ -1841,7 +1841,7 @@ def configure_intl(o):
   elif with_intl == 'small-icu' or options.cross_compiling:
     icu_config['variables']['icu_asm_ext'] = 'c'
     icu_config['variables']['icu_asm_opts'] = []
-  elif flavor == 'mac':
+  elif flavor in ('mac', 'ios'):
     icu_config['variables']['icu_asm_ext'] = 'S'
     icu_config['variables']['icu_asm_opts'] = [ '-a', 'gcc-darwin' ]
   elif sys.platform.startswith('aix'):
