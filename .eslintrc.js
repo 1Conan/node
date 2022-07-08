@@ -35,6 +35,9 @@ Module._findPath = (request, paths, isMain) => {
 
 module.exports = {
   root: true,
+  env: {
+    es2022: true,
+  },
   extends: ['eslint:recommended', 'plugin:jsdoc/recommended'],
   plugins: ['jsdoc', 'markdown', 'node-core'],
   parser: '@babel/eslint-parser',
@@ -163,7 +166,7 @@ module.exports = {
     'keyword-spacing': 'error',
     'linebreak-style': ['error', 'unix'],
     'max-len': ['error', {
-      code: 80,
+      code: 120,
       ignorePattern: '^// Flags:',
       ignoreRegExpLiterals: true,
       ignoreTemplateLiterals: true,
@@ -186,7 +189,6 @@ module.exports = {
     'no-proto': 'error',
     'no-redeclare': ['error', { 'builtinGlobals': false }],
     'no-restricted-modules': ['error', 'sys'],
-    /* eslint-disable max-len */
     'no-restricted-properties': [
       'error',
       {
@@ -239,7 +241,6 @@ module.exports = {
         message: 'Use Number.isNaN() instead of the global isNaN() function.',
       },
     ],
-    /* eslint-enable max-len */
     'no-return-await': 'error',
     'no-self-compare': 'error',
     'no-tabs': 'error',
@@ -297,10 +298,7 @@ module.exports = {
     'valid-typeof': ['error', { requireStringLiterals: true }],
 
     // ESLint recommended rules that we disable
-    'no-cond-assign': 'off',
-    'no-empty': 'off',
     'no-inner-declarations': 'off',
-    'no-prototype-builtins': 'off',
 
     // JSDoc recommended rules that we disable
     'jsdoc/require-jsdoc': 'off',
@@ -321,23 +319,11 @@ module.exports = {
     'node-core/no-duplicate-requires': 'error',
   },
   globals: {
-    AbortController: 'readable',
-    AbortSignal: 'readable',
-    Atomics: 'readable',
-    BigInt: 'readable',
-    BigInt64Array: 'readable',
-    BigUint64Array: 'readable',
-    Event: 'readable',
-    EventTarget: 'readable',
-    MessageChannel: 'readable',
-    MessageEvent: 'readable',
-    MessagePort: 'readable',
-    TextEncoder: 'readable',
-    TextDecoder: 'readable',
-    queueMicrotask: 'readable',
-    globalThis: 'readable',
-    btoa: 'readable',
-    atob: 'readable',
-    performance: 'readable',
+    Crypto: 'readable',
+    CryptoKey: 'readable',
+    fetch: 'readable',
+    FormData: 'readable',
+    Response: 'readable',
+    SubtleCrypto: 'readable',
   },
 };

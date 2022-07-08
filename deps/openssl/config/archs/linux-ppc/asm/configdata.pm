@@ -111,8 +111,8 @@ our %config = (
   sourcedir => ".",
   target => "linux-ppc",
   tdirs => [ "ossl_shim" ],
-  version => "1.1.1m+quic",
-  version_num => "0x101010dfL",
+  version => "1.1.1q+quic",
+  version_num => "0x1010111fL",
 );
 
 our %target = (
@@ -1286,7 +1286,6 @@ our %unified_info = (
                 ],
             "test/ec_internal_test" =>
                 [
-                    "apps/libapps.a",
                     "libcrypto.a",
                     "test/libtestutil.a",
                 ],

@@ -82,6 +82,9 @@ The `'line'` event is emitted whenever the `input` stream receives an
 end-of-line input (`\n`, `\r`, or `\r\n`). This usually occurs when the user
 presses <kbd>Enter</kbd> or <kbd>Return</kbd>.
 
+The `'line'` event is also emitted if new data has been read from a stream and
+that stream ends without a final end-of-line marker.
+
 The listener function is called with a string containing the single line of
 received input.
 
@@ -658,15 +661,8 @@ a `'resize'` event on the `output` if or when the columns ever change
 ([`process.stdout`][] does this automatically when it is a TTY).
 
 When creating a `readline.Interface` using `stdin` as input, the program
-will not terminate until it receives `EOF` (<kbd>Ctrl</kbd>+<kbd>D</kbd> on
-Linux/macOS, <kbd>Ctrl</kbd>+<kbd>Z</kbd> followed by <kbd>Return</kbd> on
-Windows).
-If you want your application to exit without waiting for user input, you can
-[`unref()`][] the standard input stream:
-
-```js
-process.stdin.unref();
-```
+will not terminate until it receives an [EOF character][]. To exit without
+waiting for user input, call `process.stdin.unref()`.
 
 ### Use of the `completer` function
 
@@ -919,7 +915,7 @@ const { createInterface } = require('readline');
   </tr>
   <tr>
     <td><kbd>Ctrl</kbd>+<kbd>E</kbd></td>
-    <td>Go to to end of line</td>
+    <td>Go to end of line</td>
     <td></td>
   </tr>
   <tr>
@@ -994,6 +990,7 @@ const { createInterface } = require('readline');
   </tr>
 </table>
 
+[EOF character]: https://en.wikipedia.org/wiki/End-of-file#EOF_character
 [Readable]: stream.md#readable-streams
 [TTY]: tty.md
 [TTY keybindings]: #tty-keybindings
@@ -1005,5 +1002,4 @@ const { createInterface } = require('readline');
 [`process.stdin`]: process.md#processstdin
 [`process.stdout`]: process.md#processstdout
 [`rl.close()`]: #rlclose
-[`unref()`]: net.md#socketunref
 [reading files]: #example-read-file-stream-line-by-line

@@ -323,7 +323,7 @@ This should be a module relative to the root of your package folder.
 For most modules, it makes the most sense to have a main script and often
 not much else.
 
-If `main` is not set it defaults to `index.js` in the packages root folder.
+If `main` is not set it defaults to `index.js` in the package's root folder.
 
 ### browser
 
@@ -690,6 +690,10 @@ This feature is helpful for local offline development and creating tests
 that require npm installing where you don't want to hit an external server,
 but should not be used when publishing packages to the public registry.
 
+*note*: Packages linked by local path will not have their own
+dependencies installed when `npm install` is ran in this case.  You must
+run `npm install` from inside the local path itself.
+
 ### devDependencies
 
 If someone is planning on downloading and using your module in their
@@ -837,6 +841,10 @@ awesome-web-framework-1.0.0.tgz`.  Note that the package names do not
 include any versions, as that information is specified in `dependencies`.
 
 If this is spelled `"bundleDependencies"`, then that is also honored.
+
+Alternatively, `"bundledDependencies"` can be defined as a boolean value. A
+value of `true` will bundle all dependencies, a value of `false` will bundle
+none.
 
 ### optionalDependencies
 

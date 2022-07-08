@@ -2213,9 +2213,8 @@ transferable object types has been expanded to cover more types than
 
 ### `ERR_MODULE_NOT_FOUND`
 
-> Stability: 1 - Experimental
-
-An [ES Module][] could not be resolved.
+A module file could not be resolved by the ECMAScript modules loader while
+attempting an `import` operation or when loading the program entry point.
 
 <a id="ERR_MULTIPLE_CALLBACK"></a>
 
@@ -2946,8 +2945,8 @@ changes:
     description: Added `requireStack` property.
 -->
 
-A module file could not be resolved while attempting a [`require()`][] or
-`import` operation.
+A module file could not be resolved by the CommonJS modules loader while
+attempting a [`require()`][] operation or when loading the program entry point.
 
 ## Legacy Node.js error codes
 
@@ -3105,6 +3104,23 @@ removed: v10.0.0
 -->
 
 Used by the `Node-API` when `Constructor.prototype` is not an object.
+
+<a id="ERR_NETWORK_IMPORT_BAD_RESPONSE"></a>
+
+### `ERR_NETWORK_IMPORT_BAD_RESPONSE`
+
+> Stability: 1 - Experimental
+
+Response was received but was invalid when importing a module over the network.
+
+<a id="ERR_NETWORK_IMPORT_DISALLOWED"></a>
+
+### `ERR_NETWORK_IMPORT_DISALLOWED`
+
+> Stability: 1 - Experimental
+
+A network module attempted to load another module that it is not allowed to
+load. Likely this restriction is for security reasons.
 
 <a id="ERR_NO_LONGER_SUPPORTED"></a>
 

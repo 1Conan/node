@@ -52,6 +52,7 @@ file a new issue.
   * [Build with a specific ICU](#build-with-a-specific-icu)
     * [Unix/macOS](#unixmacos-3)
     * [Windows](#windows-4)
+* [Configuring OpenSSL config appname](#configure-openssl-appname)
 * [Building Node.js with FIPS-compliant OpenSSL](#building-nodejs-with-fips-compliant-openssl)
 * [Building Node.js with external core modules](#building-nodejs-with-external-core-modules)
   * [Unix/macOS](#unixmacos-4)
@@ -219,9 +220,10 @@ Supported platforms and toolchains change with each major version of Node.js.
 This document is only valid for the current major version of Node.js.
 Consult previous versions of this document for older versions of Node.js:
 
+* [Node.js 17](https://github.com/nodejs/node/blob/v17.x/BUILDING.md)
+* [Node.js 16](https://github.com/nodejs/node/blob/v16.x/BUILDING.md)
 * [Node.js 14](https://github.com/nodejs/node/blob/v14.x/BUILDING.md)
 * [Node.js 12](https://github.com/nodejs/node/blob/v12.x/BUILDING.md)
-* [Node.js 10](https://github.com/nodejs/node/blob/v10.x/BUILDING.md)
 
 ## Building Node.js on supported platforms
 
@@ -271,6 +273,10 @@ To build Node.js:
 $ ./configure
 $ make -j4
 ```
+
+We can speed up the builds by using [Ninja](https://ninja-build.org/). For more
+information, see
+[Building Node.js with Ninja](doc/contributing/building-node-with-ninja.md).
 
 The `-j4` option will cause `make` to run 4 simultaneous compilation jobs which
 may reduce build time. For more information, see the
@@ -772,6 +778,19 @@ as `deps/icu` (You'll have: `deps/icu/source/...`)
 
 ```console
 > .\vcbuild full-icu
+```
+
+### Configure OpenSSL appname
+
+Node.js can use an OpenSSL configuration file by specifying the environment
+variable `OPENSSL_CONF`, or using the command line option `--openssl-conf`, and
+if none of those are specified will default to reading the default OpenSSL
+configuration file `openssl.cnf`. Node.js will only read a section that is by
+default named `nodejs_conf`, but this name can be overridden using the following
+configure option:
+
+```console
+$ ./configure --openssl-conf-name=<some_conf_name>
 ```
 
 ## Building Node.js with FIPS-compliant OpenSSL
